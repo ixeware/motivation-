@@ -618,7 +618,7 @@ def overlay_ops(f):
 
 
 IMPACT = {DROP: "invert", DROP + 1: "invert", DROP + 2: "flash"}
-COVER_FRAME = 300
+COVER_FRAME = 333
 
 
 # ----------------------------------------------------------------------------- sound
