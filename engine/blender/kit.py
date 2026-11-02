@@ -167,13 +167,47 @@ def dark(name, color=(0.12, 0.12, 0.13, 1), rough=0.7, emit: float = 0.0):
     return m
 
 
-def glossy_floor(name="floor", color=(0.012, 0.012, 0.014, 1), rough=0.22):
+def glossy_floor(name="floor", color=(0.0, 0.0, 0.0, 1), rough=0.24, spec=0.8,
+                 center=(0.0, -1.2), radius=(2.6, 2.3), soft=0.75):
+    """Black mirror floor: shows only blurred reflections of the set, never a lit pool.
+
+    A lit floor shows the far edge of the spotlights' pool as a hard horizontal line (the camera sees the
+    floor at a grazing angle, so any edge in depth gets squashed into a thin band). So the floor is black
+    (no diffuse), spots are hidden from glossy rays (see spot()), and the reflections fade to black away
+    from the set: full inside an ellipse (`center`, `radius` in metres; object space = world for a floor at
+    the origin), fading over its outer `soft` part.
+    """
     m, nt, out = _mat(name)
     p = nt.nodes.new("ShaderNodeBsdfPrincipled")
     p.inputs["Base Color"].default_value = color
     p.inputs["Roughness"].default_value = rough
-    p.inputs["Specular IOR Level"].default_value = 0.6
-    nt.links.new(p.outputs[0], out.inputs["Surface"])
+    p.inputs["Specular IOR Level"].default_value = spec
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    sub = nt.nodes.new("ShaderNodeVectorMath")
+    sub.operation = "SUBTRACT"
+    sub.inputs[1].default_value = (center[0], center[1], 0)
+    scl = nt.nodes.new("ShaderNodeVectorMath")
+    scl.operation = "MULTIPLY"
+    scl.inputs[1].default_value = (1 / radius[0], 1 / radius[1], 0)
+    ln = nt.nodes.new("ShaderNodeVectorMath")
+    ln.operation = "LENGTH"
+    mr = nt.nodes.new("ShaderNodeMapRange")
+    mr.interpolation_type = "SMOOTHERSTEP"
+    mr.inputs["From Min"].default_value = 1.0 - soft
+    mr.inputs["From Max"].default_value = 1.0
+    mr.inputs["To Min"].default_value = 1.0
+    mr.inputs["To Max"].default_value = 0.0
+    black = nt.nodes.new("ShaderNodeEmission")
+    black.inputs["Strength"].default_value = 0.0
+    mix = nt.nodes.new("ShaderNodeMixShader")
+    nt.links.new(tc.outputs["Object"], sub.inputs[0])
+    nt.links.new(sub.outputs["Vector"], scl.inputs[0])
+    nt.links.new(scl.outputs["Vector"], ln.inputs[0])
+    nt.links.new(ln.outputs["Value"], mr.inputs["Value"])
+    nt.links.new(mr.outputs["Result"], mix.inputs["Fac"])
+    nt.links.new(black.outputs[0], mix.inputs[1])
+    nt.links.new(p.outputs[0], mix.inputs[2])
+    nt.links.new(mix.outputs[0], out.inputs["Surface"])
     return m
 
 
@@ -588,7 +622,9 @@ def text(name, body, size=0.2, loc=(0, 0, 0), rot=(math.radians(90), 0, 0), colo
     return ob
 
 
-def spot(name, loc, target_loc, energy=900.0, size_deg=48.0, blend=0.65, color=(1, 0.97, 0.92), radius=0.15):
+def spot(name, loc, target_loc, energy=900.0, size_deg=48.0, blend=0.65, color=(1, 0.97, 0.92), radius=0.15,
+         glossy=False):
+    """Spotlight aimed at target_loc. glossy=False: no highlight in the mirror floor (no light-pool edge)."""
     li = bpy.data.lights.new(name, "SPOT")
     li.energy = energy
     li.spot_size = math.radians(size_deg)
@@ -597,6 +633,7 @@ def spot(name, loc, target_loc, energy=900.0, size_deg=48.0, blend=0.65, color=(
     li.shadow_soft_size = radius
     ob = _link(bpy.data.objects.new(name, li))
     ob.location = loc
+    ob.visible_glossy = glossy
     d = Vector(target_loc) - Vector(loc)
     ob.rotation_euler = d.to_track_quat("-Z", "Y").to_euler()
     return ob
