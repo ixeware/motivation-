@@ -13,7 +13,7 @@ python -m engine make "талант и хардворк борются, а эг�
 | Промпты для GPT Image (перегенерация скриншотов) | [docs/GPT_IMAGE_PROMPTS.md](docs/GPT_IMAGE_PROMPTS.md) |
 | Формат сценария (ручная доводка) | [docs/SCENARIO.md](docs/SCENARIO.md) |
 | Готовые сценарии | [scenarios/](scenarios/) |
-| Примеры рендера | [examples/](examples/) (новый: `discipline_army_stage.mp4`, 60 fps, отражения и прожекторы) |
+| Примеры рендера | [examples/](examples/) (`eyes_on_your_own_test.mp4` — экзамен + пурпурный в экран + дыра через школу; `discipline_army_stage.mp4` — сцена с прожекторами) |
 
 ## Установка
 
@@ -68,11 +68,13 @@ python -m engine still scenarios/<slug>.json 10.2  # один кадр в png
 | `grind_levelup` | окно квеста → учёба → тренировка → LEVEL UP + армия теней | окно системы |
 | `adaptation` | героя бьют, колесо над головой поворачивается → адаптация → контрудар | колесо |
 | `towers` | чёрная сцена, прожекторы, зеркальный пол: трое строят башни, двое сдаются, герой продолжает → столб света | армия теней + окно LEVEL UP |
+| `exam_breakthrough` | гонка на экзамене: герой заглядывает в чужие листы → F → завязывает глаза → учится вслепую → на пересдаче стреляет пурпурным прямо в камеру → камера вылетает сквозь круглую дыру через всю школу | пурпурная сфера в экран + повязка |
 
 ## Устройство
 ```
 engine/
-  render/   rig.py (фигуры chunky/slim, 44 позы) · scenes.py (8 сцен) · vfx.py (13 эффектов) · renderer.py (камера, глубина резкости, зеркальный пол, пост)
+  render/   rig.py (фигуры chunky/slim, 44 позы) · scenes.py (9 сцен, вкл. перспективный туннель) · vfx.py (15 эффектов) · renderer.py (камера, глубина резкости, зеркальный пол, пост)
+  templates/ готовые выверенные сценарии-шаблоны (exam_breakthrough)
   audio/    sfx.py (процедурные звуки) · bed.py (подложка) · mix.py (биты, дроп, микс)
   music/    tiktok.py (радар, загрузка, Research API, локальная библиотека)
   planner.py · references.py · pipeline.py · cli.py

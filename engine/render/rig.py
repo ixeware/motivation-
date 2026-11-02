@@ -171,11 +171,22 @@ def apply_mods(p: dict, mods: dict, t: float) -> dict:
     if mods.get("fight"):
         amp = mods["fight"]
         p["lean"] += math.sin(t * 9) * 3 * amp
+    if mods.get("look_around"):
+        amp = mods["look_around"]
+        v = look_phase(t, mods.get("look_rate", 1.3))
+        p["head_dx"] += 0.34 * amp * v
+        p["lean"] += 5 * amp * v
     if mods.get("pant"):
         amp = mods["pant"]
         p["head_drop"] += (0.5 + 0.5 * math.sin(t * 9)) * 0.08 * amp
         p["slump"] += (0.5 + 0.5 * math.sin(t * 9)) * 0.04 * amp
     return p
+
+
+def look_phase(t: float, rate: float = 1.3) -> float:
+    """-1 (looking left) .. +1 (looking right): quick glances with short holds (comparing)."""
+    v = math.sin(t * rate * 2 * math.pi)
+    return math.copysign(abs(v) ** 0.35, v)
 
 
 def stack_pose(phase: float, side: int = 1) -> tuple[dict, bool]:

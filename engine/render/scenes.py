@@ -8,6 +8,7 @@ Scenes (shot["scene"]):
   arena      side view, dark void stage for fights / power moves
   void       front view, empty dark stage (good for domain / reveals)
   stage      front view, black stage, glossy floor, spotlights, block towers (newer reference look)
+  tunnel     perspective fly-back through a perfectly round hole punched through the school
   title      end card: big quote + mono subtitle + seal
 """
 from __future__ import annotations
@@ -53,6 +54,32 @@ def draw_actor(c: skia.Canvas, st: ActorState, ctx: Ctx, *, label=True, sheet_sc
         rig.draw_zzz(c, hx + st.s * 1.15, j.head[1] + st.s * 0.2, st.s, ctx.t, a=st.alpha)
     if st.sparkle > 0.01:
         rig.draw_sparkle(c, hx + st.s * 1.25, j.head[1] - st.s * 1.15, st.s * 0.55, ctx.t, a=st.sparkle * st.alpha)
+    if st.emote:
+        draw_bubble(c, hx + st.s * 1.05, j.head[1] - st.s * 1.25, st.s, st.emote, st.emote_t, st.emote_dur,
+                    a=st.alpha)
+
+
+def draw_bubble(c: skia.Canvas, x: float, y: float, s: float, text: str, lt: float, dur: float, *, a=1.0):
+    """Small white speech bubble with dark mono text (reference style): '?', '!', 'HUH?'."""
+    k = out_back(min(1.0, lt / 0.22))
+    fade = min(1.0, (dur - lt) / 0.2) if dur > 0 else 1.0
+    al = a * min(1.0, lt / 0.08) * max(0.0, fade)
+    if al <= 0.01:
+        return
+    size = max(14.0, s * 0.62)
+    fnt = gfx.font(gfx.MONO_XB, size)
+    w = gfx.text_width(text, fnt, size * 0.05) + size * 0.9
+    h = size * 1.45
+    c.save()
+    c.translate(x, y)
+    c.scale(0.6 + 0.4 * k, 0.6 + 0.4 * k)
+    gfx.rrect(c, -w * 0.15 - 2, -h - 2, w + 4, h + 4, h * 0.45, gfx.paint(rig.OUTLINE_C, 0.9 * al))
+    gfx.rrect(c, -w * 0.15, -h, w, h, h * 0.45, gfx.paint("#f4f4f2", al))
+    tail = gfx.poly([(w * 0.05, -h * 0.12), (w * 0.28, -h * 0.12), (-w * 0.05, h * 0.38)])
+    c.drawPath(tail, gfx.paint("#f4f4f2", al))
+    gfx.draw_text(c, text, -w * 0.15 + w / 2, -h * 0.3, size=size, face=gfx.MONO_XB, c="#141416", a=al,
+                  spacing=size * 0.05)
+    c.restore()
 
 
 def _rnd(seed):
@@ -481,6 +508,284 @@ class Stage(Scene):
         return (st.x, st.y - st.s * 3.0)
 
 
+# ----------------------------------------------------------------------------- tunnel (the hole through the school)
+
+
+class Tunnel(Scene):
+    """Perspective view down a perfectly round hole punched through the school.
+
+    The camera flies backwards, away from the hero, through the holes:
+    hero's classroom -> classroom wall (lockers on the corridor side) -> corridor ->
+    the next room's wall -> the school facade -> night outside. The hero stays at the
+    far end of the hole.
+
+    Units: x/y in 'local px' (100 = 1 m), hole axis at (0, 0), y down;
+    z in metres along the hole (hero plane z = 0, camera at negative z).
+    """
+    name = "tunnel"
+    R = 125.0
+    FLOOR = 111.0
+    CEIL = -265.0
+    BX = 900.0
+    BTOP, BBOT = -650.0, 460.0
+
+    def __init__(self, shot, scenario, W, H):
+        super().__init__(shot, scenario, W, H)
+        from scipy.interpolate import PchipInterpolator
+        path = self.p.get("cam", [[0.0, -1.6], [0.7, -2.0], [3.3, -21.0], [4.6, -24.0]])
+        ts = [float(a) for a, _ in path]
+        zs = [float(b) for _, b in path]
+        self._cam = PchipInterpolator(ts, zs, extrapolate=True)
+        self._t0, self._t1 = ts[0], ts[-1]
+        self.F = float(self.p.get("F", 4.5))
+        self.AY = float(self.p.get("axis_y", 0.46)) * H
+        self.walls = self.p.get("walls", [
+            {"z": -3.0, "th": 0.3, "kind": "lockers"},
+            {"z": -6.0, "th": 0.3, "kind": "lab"},
+            {"z": -12.0, "th": 0.45, "kind": "facade"},
+        ])
+        self.back_z = float(self.p.get("back_z", 3.0))
+
+    def layout(self, aid, spec, idx, n):
+        s = float(spec.get("s", 21.7))
+        x = float(spec.get("lx", 0.0))
+        if spec.get("seated"):
+            return dict(x=x, x01=0.5, y=float(spec.get("ly", 66.0)), s=s, layer="main", facing=1, pose="sit",
+                        legs=False)
+        return dict(x=x, x01=0.5, y=0.0, s=s, layer="main", facing=1, pose="stand", floor=self.FLOOR)
+
+    # --- projection --------------------------------------------------------
+    def cam_z(self, t):
+        return float(self._cam(min(max(t, self._t0), self._t1)))
+
+    def k(self, z, cz):
+        return self.F / max(1e-3, z - cz)
+
+    def P(self, x, y, z, cz):
+        kk = self.k(z, cz)
+        return (self.W / 2 + x * kk, self.AY + y * kk)
+
+    def _plane_quad(self, c, cz, y, z0, z1, x0, x1, color0, color1, a=1.0):
+        """Horizontal plane (floor / ceiling / ground) between z0..z1, x0..x1 at height y."""
+        near = cz + 0.06
+        z0 = max(z0, near)
+        if z1 <= z0:
+            return
+        q = [self.P(x0, y, z0, cz), self.P(x1, y, z0, cz), self.P(x1, y, z1, cz), self.P(x0, y, z1, cz)]
+        ya, yb = q[0][1], q[2][1]
+        sh = gfx.linear(0, ya, 0, yb, [(0, color0, a), (1, color1, a)])
+        c.drawPath(gfx.poly(q), skia.Paint(AntiAlias=True, Shader=sh))
+
+    def _side_quad(self, c, cz, x, z0, z1, y0, y1, color, a=1.0):
+        near = cz + 0.06
+        z0 = max(z0, near)
+        if z1 <= z0:
+            return
+        q = [self.P(x, y0, z0, cz), self.P(x, y0, z1, cz), self.P(x, y1, z1, cz), self.P(x, y1, z0, cz)]
+        c.drawPath(gfx.poly(q), gfx.paint(color, a))
+
+    # --- wall faces (drawn in local px of the face plane) -----------------
+    def _face_details(self, c, kind, t):
+        R, F_, C_ = self.R, self.FLOOR, self.CEIL
+        if kind == "lockers":
+            c.drawRect(skia.Rect(-self.BX, C_ - 140, self.BX, F_ + 140), skia.Paint(
+                Shader=gfx.linear(0, C_, 0, F_, [(0, "#2a2c33", 1), (1, "#202128", 1)])))
+            c.drawRect(skia.Rect(-self.BX, C_ - 140, self.BX, C_), gfx.paint("#121215"))
+            c.drawRect(skia.Rect(-self.BX, F_, self.BX, F_ + 140), gfx.paint("#121215"))
+            for i in range(-20, 21):
+                x0 = i * 46.0
+                top = F_ - 190
+                c.drawRect(skia.Rect(x0 + 2, top, x0 + 44, F_ - 6), skia.Paint(
+                    Shader=gfx.linear(0, top, 0, F_, [(0, "#4a4f5c", 1), (1, "#353945", 1)])))
+                c.drawRect(skia.Rect(x0 + 2, top, x0 + 44, F_ - 6), gfx.paint("#121317", 1, stroke=2.5,
+                                                                               cap_round=False))
+                for v in range(4):
+                    c.drawLine(x0 + 12, top + 16 + v * 7, x0 + 34, top + 16 + v * 7, gfx.paint("#20222a", 1, stroke=2))
+                c.drawRect(skia.Rect(x0 + 34, top + 90, x0 + 38, top + 112), gfx.paint("#8a8f9c"))
+            c.drawRect(skia.Rect(-self.BX, F_ - 8, self.BX, F_), gfx.paint("#0e0e11"))
+            for x in (-640, -260, 260, 640):   # ceiling lights + their glow on the wall
+                c.drawRect(skia.Rect(x - 70, C_ + 4, x + 70, C_ + 14), gfx.paint("#e8eef7", 0.75))
+                gfx.glow_circle(c, x, C_ + 30, 120, "#dfe8ff", 0.12, spread=2.2)
+        elif kind == "lab":
+            c.drawRect(skia.Rect(-self.BX, C_ - 140, self.BX, F_ + 140), gfx.paint("#23242a"))
+            c.drawRect(skia.Rect(-self.BX, C_ - 140, self.BX, C_), gfx.paint("#121215"))
+            c.drawRect(skia.Rect(-self.BX, F_, self.BX, F_ + 140), gfx.paint("#121215"))
+            # whiteboard cut by the hole + formulas (callback to the grind montage)
+            c.drawRect(skia.Rect(-430, -205, 430, 25), gfx.paint("#4a4c53"))
+            c.drawRect(skia.Rect(-420, -195, 420, 15), gfx.paint("#d9d9d4"))
+            for i, txt in enumerate(["2X+7=19", "X=6", "3X+6=9"]):
+                gfx.draw_text(c, txt, -400, -160 + i * 42, size=30, face=gfx.MONO_MED, c="#3a3b40", align="left")
+            for i, txt in enumerate(["F=ma", "E=mc2"]):
+                gfx.draw_text(c, txt, 190, -140 + i * 50, size=30, face=gfx.MONO_MED, c="#3a3b40", align="left")
+            props.wall_clock(c, 600, -170, 32, 9.1)
+            c.drawRect(skia.Rect(-800, -150, -600, 60), gfx.paint("#2b2c33"))       # poster
+            c.drawRect(skia.Rect(-790, -140, -610, 50), gfx.paint("#1d3557", 0.6))
+        elif kind == "facade":
+            bx0, bx1, by0, by1 = -self.BX, self.BX, self.BTOP, self.BBOT
+            c.drawRect(skia.Rect(bx0, by0, bx1, by1), skia.Paint(
+                Shader=gfx.linear(0, by0, 0, by1, [(0, "#1c1d23", 1), (1, "#141519", 1)])))
+            c.drawRect(skia.Rect(bx0 - 30, by0 - 30, bx1 + 30, by0 + 10), gfx.paint("#0f1013"))  # roof ledge
+            for yy in (-280, 110):  # slab lines between storeys
+                c.drawRect(skia.Rect(bx0, yy, bx1, yy + 14), gfx.paint("#101114"))
+            rnd = random.Random(4)
+            for row, cy in enumerate((-470, -85, 285)):
+                for cx in (-760, -500, -240, 240, 500, 760):
+                    lit = rnd.random() < 0.35
+                    col_ = "#f5c77e" if lit else "#16233a"
+                    c.drawRect(skia.Rect(cx - 82, cy - 100, cx + 82, cy + 100), gfx.paint("#0c0c0f"))
+                    c.drawRect(skia.Rect(cx - 72, cy - 90, cx + 72, cy + 90), gfx.paint(col_, 0.85 if lit else 0.9))
+                    c.drawLine(cx, cy - 90, cx, cy + 90, gfx.paint("#0c0c0f", 1, stroke=8, cap_round=False))
+                    c.drawLine(cx - 72, cy, cx + 72, cy, gfx.paint("#0c0c0f", 1, stroke=8, cap_round=False))
+                    if lit:
+                        gfx.glow_circle(c, cx, cy, 90, "#f5c77e", 0.12, spread=2.0)
+            # entrance + sign
+            c.drawRect(skia.Rect(-110, 250, 110, by1), gfx.paint("#0b0b0d"))
+            c.drawRect(skia.Rect(-96, 264, 96, by1), gfx.paint("#e8d9b5", 0.35))
+            gfx.draw_text(c, "H I G H   S C H O O L", 0, 228, size=34, face=gfx.MONO_XB, c="#d6d6d2", a=0.85)
+
+    def _wall(self, c, cz, wall, t, heat):
+        zf, th, kind = float(wall["z"]), float(wall.get("th", 0.3)), wall.get("kind", "lockers")
+        zb = zf + th
+        R = self.R
+        W, H = self.W, self.H
+        if zb <= cz + 0.02:
+            return  # completely behind the camera
+        if zf <= cz + 0.02 < zb:
+            # the camera is inside the cut: the cylinder wall surrounds the frame
+            kb = self.k(zb, cz)
+            cx, cy = W / 2, self.AY
+            pth = skia.Path()
+            pth.setFillType(skia.PathFillType.kEvenOdd)
+            pth.addRect(skia.Rect(-W, -H, 2 * W, 2 * H))
+            pth.addCircle(cx, cy, R * kb)
+            c.drawPath(pth, gfx.paint("#2a2a30"))
+            c.drawCircle(cx, cy, R * kb, gfx.paint("#a855f7", 0.9 * heat, stroke=6, blur=6, blend=gfx.ADD))
+            return
+        kf, kb = self.k(zf, cz), self.k(zb, cz)
+        c.save()
+        c.translate(W / 2, self.AY)
+        c.scale(kf, kf)
+        if kind == "facade":
+            bounds = skia.Rect(-self.BX - 30, self.BTOP - 30, self.BX + 30, self.BBOT)
+        else:
+            bounds = skia.Rect(-self.BX, self.CEIL - 140, self.BX, self.FLOOR + 140)
+        hole = skia.Path()
+        hole.setFillType(skia.PathFillType.kEvenOdd)
+        hole.addRect(bounds)
+        hole.addCircle(0, 0, R)
+        c.save()
+        c.clipPath(hole, doAntiAlias=True)
+        self._face_details(c, kind, t)
+        c.restore()
+        # the cut: inner surface of the cylinder between the front and back face
+        rb = R * kb / kf
+        ring = skia.Path()
+        ring.setFillType(skia.PathFillType.kEvenOdd)
+        ring.addCircle(0, 0, R)
+        ring.addCircle(0, 0, rb)
+        c.drawPath(ring, skia.Paint(AntiAlias=True, Shader=gfx.radial(0, 0, R, [
+            (0, "#3a3046", 1), (rb / R, "#2f2a38", 1), (1, "#1a1a1f", 1)])))
+        c.drawPath(ring, skia.Paint(AntiAlias=True, Shader=gfx.radial(0, 0, R, [
+            (rb / R, "#a855f7", 0.0), (1, "#a855f7", 0.18 * heat)]), BlendMode=gfx.ADD))
+        # still-hot rims (front and back edge); widths are kept constant on screen
+        inv = 1.0 / max(kf, 1e-3)
+        c.drawCircle(0, 0, R, gfx.paint("#7c3aed", 0.6 * heat, stroke=18 * inv, blur=9 * inv, blend=gfx.ADD))
+        c.drawCircle(0, 0, R, gfx.paint("#e9d5ff", 0.85 * heat, stroke=2.4 * inv))
+        c.drawCircle(0, 0, rb, gfx.paint("#c084fc", 0.45 * heat, stroke=1.8 * inv))
+        c.restore()
+
+    def build(self, ctx, actors):
+        W, H = self.W, self.H
+        t = ctx.t
+        cz = self.cam_z(t)
+        heat = 1.0 - 0.6 * gfx.clamp(t / 4.5)
+        rnd_stars = random.Random(9)
+
+        def bg(c):
+            c.drawRect(skia.Rect(-W, -H, 2 * W, 2 * H), skia.Paint(
+                Shader=gfx.linear(0, 0, 0, H, [(0, "#04060c", 1), (0.55, "#0b1222", 1), (1, "#141a2a", 1)])))
+            for _ in range(160):
+                x, y = rnd_stars.random() * W, rnd_stars.random() * H * 0.62
+                c.drawCircle(x, y, 0.6 + rnd_stars.random() * 1.6,
+                             gfx.paint("white", 0.25 + 0.6 * rnd_stars.random() * (0.6 + 0.4 * math.sin(t * 3 + x))))
+            gfx.glow_circle(c, W * 0.8, H * 0.12, 46, "#e7ecff", 0.5, spread=3.5)
+            c.drawCircle(W * 0.8, H * 0.12, 44, gfx.paint("#eef2ff", 0.95))
+        ctx.add("bg", bg)
+
+        def main(c):
+            # ground outside (seen once the camera leaves the building)
+            self._plane_quad(c, cz, self.BBOT, cz, 80.0, -8000, 8000, "#0e1016", "#07080b")
+            # hero's classroom: back wall billboard, floor, ceiling, side walls
+            kb_ = self.k(self.back_z, cz)
+            c.save()
+            c.translate(W / 2, self.AY)
+            c.scale(kb_, kb_)
+            c.drawRect(skia.Rect(-self.BX, self.CEIL, self.BX, self.FLOOR + 2), skia.Paint(
+                Shader=gfx.linear(0, self.CEIL, 0, self.FLOOR, [(0, "#23252c", 1), (1, "#1a1b20", 1)])))
+            for wx in (-560, 400):
+                props.window(c, wx, -215, 170, 190, sky="night", glow=0.8)
+            props.wall_clock(c, 60, -200, 26, 9.3 + t * 0.002)
+            c.restore()
+            z_front = float(self.walls[0]["z"]) + float(self.walls[0].get("th", 0.3))
+            self._plane_quad(c, cz, self.FLOOR, z_front, self.back_z, -self.BX, self.BX, "#16171b", "#1d1e23")
+            self._plane_quad(c, cz, self.CEIL, z_front, self.back_z, -self.BX, self.BX, "#0f1013", "#17181c")
+            for sx in (-self.BX, self.BX):
+                self._side_quad(c, cz, sx, z_front, self.back_z, self.CEIL, self.FLOOR, "#1b1c21")
+            # residual violet glow where the sphere was born + the people at z = 0
+            k0 = self.k(0.0, cz)
+            c.save()
+            c.translate(W / 2, self.AY)
+            c.scale(k0, k0)
+            gfx.glow_circle(c, 0, 0, 120, "#7c3aed", 0.25 * heat, spread=2.4)
+            props.floor_shadow(c, 0, self.FLOOR + 2, 60, 0.6)
+            for st in sorted(actors.values(), key=lambda a: abs(a.x)):
+                if st.look.legs is False:
+                    draw_actor(c, st, ctx)
+                    props.desk_front(c, st.x, self.FLOOR - 40, 120, 42, paper=True, paper_glow=0.4)
+                else:
+                    draw_actor(c, st, ctx)
+            rnd = random.Random(21)
+            for i in range(14):  # smoke settling around him
+                ph = (t * 0.12 + rnd.random()) % 1.0
+                sx_ = (rnd.random() - 0.5) * 520
+                sy_ = self.FLOOR - 20 - ph * 220
+                c.drawCircle(sx_, sy_, 40 + 70 * ph, gfx.paint("#8b8a99", 0.10 * (1 - ph), blur=30))
+            c.restore()
+            # walls and rooms, far to near
+            ws = sorted(self.walls, key=lambda w: -float(w["z"]))
+            for i, wall in enumerate(ws):
+                self._wall(c, cz, wall, t, heat)
+                if i + 1 < len(ws):
+                    nxt = ws[i + 1]
+                    z0 = float(nxt["z"]) + float(nxt.get("th", 0.3))
+                    z1 = float(wall["z"])
+                    if nxt.get("kind") == "facade" or wall.get("kind") != "facade":
+                        self._plane_quad(c, cz, self.FLOOR, z0, z1, -self.BX, self.BX, "#141519", "#1a1b1f")
+                        self._plane_quad(c, cz, self.CEIL, z0, z1, -self.BX, self.BX, "#0d0e10", "#141518")
+        ctx.add("main", main)
+
+        def fx(c):
+            # embers and dust drifting inside the hole (always visible through the holes)
+            rnd = random.Random(33)
+            for i in range(90):
+                zz = -12.5 + rnd.random() * 12.3
+                if zz <= cz + 0.08:
+                    continue
+                ang = rnd.random() * 2 * math.pi
+                rr = self.R * (0.35 + 0.6 * rnd.random())
+                x = math.cos(ang) * rr + math.sin(t * 0.9 + i) * 12
+                y = math.sin(ang) * rr - ((t * 18 * (0.4 + rnd.random())) % 160) + 60
+                kk = self.k(zz, cz)
+                px, py = W / 2 + x * kk, self.AY + y * kk
+                rad = max(0.8, 2.2 * kk)
+                col_ = "#c084fc" if i % 3 else "#fde68a"
+                c.drawCircle(px, py, rad, gfx.paint(col_, 0.75 * heat * min(1.0, kk), blend=gfx.ADD))
+        ctx.add("fx", fx)
+
+    def focus_point(self, st):
+        return (self.W / 2, self.H / 2)
+
+
 # ----------------------------------------------------------------------------- title card
 
 
@@ -550,4 +855,4 @@ class Title(Scene):
         ctx.add("screen", screen)
 
 
-SCENES = {cls.name: cls for cls in (Classroom, Closeup, Study, Board, Arena, Void, Stage, Title)}
+SCENES = {cls.name: cls for cls in (Classroom, Closeup, Study, Board, Arena, Void, Stage, Tunnel, Title)}

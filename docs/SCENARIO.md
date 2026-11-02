@@ -43,6 +43,7 @@
 | `board` | сбоку, пишет на доске | `lines` [...], `reveal_from`, `reveal_until` |
 | `arena` | сбоку, тёмная сцена для боя | `spot`, `spot_c`, `tint`, `horizon`, `floor`, `shadows` |
 | `void` | фронтально, пустая сцена (раскрытие героя, территория) | как у `arena` |
+| `tunnel` | перспектива: камера улетает назад сквозь идеально круглую дыру в школе (стена класса → коридор со шкафчиками → кабинет → фасад → ночь), герой стоит в глубине | `cam` [[t, z], ...] путь камеры, `F`, `axis_y`, `walls` [{z, th, kind: lockers / lab / facade}], `back_z`; актёры: `lx` (смещение), `seated`, `pose` |
 | `stage` | фронтально, чёрная сцена: глянцевый пол, прожектор над каждым, башни из блоков, ярлыки на полу (уровень новых роликов референса) | `s` (размер фигур), `floor`, `reflect` (0..1), `haze`, `spot`, `spot_w`, `label_pos`, `block_w`, `block_h`, `spots` [{x, w, a}] |
 | `title` | финальная карточка | `lines` (слово с `*` красится в акцент), `sub`, `accent`, `size`, `seal` |
 
@@ -66,6 +67,7 @@
 | `glitch` | who, dur | глитч ярлыка |
 | `label` | who, text | сменить ярлык |
 | `zzz` | who, on | «Z z z» |
+| `emote` | who, text (`?`, `!`, `...`), dur | белый пузырь-реплика над головой |
 | `stack` | who, until, rate (блоков в секунду) | цикл «взял блок → положил на башню», башня растёт (нужен `tower` у актёра) |
 | `dim` | who, to, dur | персонаж сдался: серый, без свечения, тусклый ярлык |
 | `flame` | who, to, dur | огонь на голове (1 горит, 0 погас и дымится) |
@@ -94,6 +96,9 @@
 | `afterimage` | who, count, gap |
 | `speedlines` / `slash` | a, color / count, color |
 | `light_pillar` | at (например `{"who": "hero", "at": "tower"}`), width, color, floor |
+| `purple_launch` | at, r, hold, travel — пурпурная сфера летит прямо в камеру и заливает кадр |
+| `glance` | who, targets [...], rate — пунктирный «взгляд» в чужой лист (в паре с модом `look_around`) |
+| `hollow_purple` + флаги | `"fire": false` — только зарядка и слияние (без выстрела), `"eyes": false` — глаза не загораются (повязка) |
 | `shadow_rise` + `rows` | ряды за героем: `[[масштаб, сколько, отступ_назад, ширина], ...]` |
 
 `at` для эффектов: `[0.5, 0.8]` (доли кадра) или `{"who": "ego", "at": "hand_r|hand_l|hands|head|above|feet|front|core|tower", "dx": 0, "dy": -1.6}` (dx и dy в радиусах головы).
@@ -102,7 +107,10 @@
 
 `pose`, `x`, `s`, `facing`, `level`, `level_text`, `sheet`, `band`, `eyes`, `marks`, `core`, `zzz`, `mods`,
 `build` (`chunky` | `slim`), `label_pos` (`head` | `floor`), `tower` {`base`, `side`}, `pile` (блоков в запасе),
-`dim`, `flame`, `spot`, `sparkle`, `layer`, `alpha`.
+`dim`, `flame`, `spot`, `sparkle`, `layer`, `alpha`, `yoff` (поднять/опустить, например встал из-за парты).
+
+Моды (`mods`): `writing`, `board`, `walk`, `fight`, `float`, `shake`, `pant`, `look_around` (+ `look_rate`) —
+вертит головой и заглядывает к соседям.
 
 ## Качество
 

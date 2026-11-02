@@ -23,6 +23,10 @@ TEMPLATES = {
     "grind_levelup": "solo grind as a game: quest window, night study, training, LEVEL UP and an army of shadows",
     "adaptation": "hero keeps getting hit by an obstacle, a wheel above the head turns each time, then he adapts and "
                   "counters",
+    "exam_breakthrough": "school exam race: the hero keeps checking the others' papers and fails, ties a blindfold "
+                         "(stops comparing), grinds blind, and at the retest forms the purple sphere and fires it "
+                         "straight at the camera; the camera flies back through a perfectly round hole punched "
+                         "through the whole school, the hero standing at the far end",
     "towers": "newer reference look: black stage, spotlights, glossy reflective floor; three archetypes stack glowing "
               "blocks into towers, two of them quit, the hero keeps stacking; the finished tower shoots a beam of light "
               "and the hidden reference fires",
@@ -66,6 +70,9 @@ QUOTES = {
                           "Nobody saw the nights. Everyone saw the level."),
         "adaptation": (["EVERY FALL IS", "ONE TURN OF THE WHEEL.*"], "YOU ARE NOT LOSING. YOU ARE ADAPTING",
                        "Every fall is one turn of the wheel. You are not losing, you are adapting."),
+        "exam_breakthrough": (["HE STOPPED COMPARING.", "AND WENT STRAIGHT", "THROUGH.*"], "EYES ON YOUR OWN TEST",
+                              "He failed while watching everyone else's paper. The day he stopped looking, "
+                              "he went straight through."),
         "towers": (["MOTIVATION IS A SPARK.", "DISCIPLINE IS AN ARMY.*"], "YOUR DAYS ARE YOUR SOLDIERS",
                    "Motivation is a spark. Discipline is an army. Every day you showed up anyway will one day "
                    "stand behind you."),
@@ -88,7 +95,10 @@ def rule_brief(request: str, lang: str = "en") -> dict:
     found.sort()
     labels = [f[1] for f in found]
     ref = refs.match(t)
-    if re.search(r"башн|строит|постро|складыва|блок|кирпич|сцен|прожектор|отражени", t):
+    if re.search(r"тест|экзамен|школ|класс|оценк|контрольн", t) and \
+            re.search(r"пурпур|фиолет|годжо|gojo|purple|дыр|туннел|в камеру|в экран|насквозь", t):
+        template = "exam_breakthrough"
+    elif re.search(r"башн|строит|постро|складыва|блок|кирпич|сцен|прожектор|отражени", t):
         template = "towers"
     elif re.search(r"класс|оценк|экзамен|школ|контрольн|тест|урок", t):
         template = "classroom_rematch"
@@ -106,10 +116,12 @@ def rule_brief(request: str, lang: str = "en") -> dict:
         template = "adaptation"
     if ref is None:
         ref = {"classroom_rematch": "domain_void", "duel_power": "hollow_purple", "grind_levelup": "system",
-               "adaptation": "wheel", "towers": "shadow_rise"}[template]
+               "adaptation": "wheel", "towers": "shadow_rise", "exam_breakthrough": "hollow_purple"}[template]
+    if template == "exam_breakthrough":
+        ref = "hollow_purple"
     positive = [lbl for lbl in labels if lbl not in NEGATIVE]
     default_hero = {"classroom_rematch": "EGO", "duel_power": "EGO", "grind_levelup": "DISCIPLINE",
-                    "adaptation": "YOU", "towers": "DISCIPLINE"}[template]
+                    "adaptation": "YOU", "towers": "DISCIPLINE", "exam_breakthrough": "EGO"}[template]
     if template == "towers":
         hero = "DISCIPLINE" if "DISCIPLINE" in positive else (positive[-1] if positive else default_hero)
     elif "EGO" in positive:
@@ -126,18 +138,18 @@ def rule_brief(request: str, lang: str = "en") -> dict:
     rivals.sort(key=lambda x: x not in NEGATIVE if template in ("adaptation", "grind_levelup") else 0)
     defaults = {"classroom_rematch": ["DISCIPLINE", "TALENT"], "duel_power": ["TALENT", "HARD WORK"],
                 "grind_levelup": ["LAZINESS", "DOUBT"], "adaptation": ["FAILURE", "FEAR"],
-                "towers": ["TALENT", "MOTIVATION"]}[template]
+                "towers": ["TALENT", "MOTIVATION"], "exam_breakthrough": ["DISCIPLINE", "TALENT"]}[template]
     for d in defaults:
         if len(rivals) >= 2:
             break
         if d not in rivals and d != hero:
             rivals.append(d)
-    lines, sub, caption = QUOTES.get(lang, QUOTES["en"])[template]
+    lines, sub, caption = QUOTES.get(lang, QUOTES["en"]).get(template) or QUOTES["en"][template]
     hero_word = hero if lang == "en" else {"EGO": "ЭГО", "DISCIPLINE": "ДИСЦИПЛИНА", "FOCUS": "ФОКУС",
                                            "PRIDE": "ГОРДОСТЬ", "HARD WORK": "ТРУД"}.get(hero, hero)
     lines = [ln.replace("{hero}", hero_word) for ln in lines]
     return {"template": template, "reference": ref, "hero": hero, "rivals": rivals[:2],
-            "hook": "" if template == "towers" else " VS ".join(rivals[:2] + [hero])
+            "hook": "" if template in ("towers", "exam_breakthrough") else " VS ".join(rivals[:2] + [hero])
             if template in ("classroom_rematch", "duel_power")
             else f"{hero}: DAY 1" if template == "grind_levelup" else f"{hero} VS {rivals[0]}",
             "end_lines": lines, "end_sub": sub, "caption": caption, "hashtags": HASHTAGS + [hero.lower().replace(" ", "")],
@@ -702,8 +714,34 @@ def build_towers(b: dict) -> dict:
     return sc
 
 
+def build_exam_breakthrough(b: dict) -> dict:
+    """Hand-tuned template (engine/templates/exam_breakthrough.json): exam race -> blindfold ->
+    blind grind -> retest -> purple fired at the camera -> fly-back through the hole in the school."""
+    import copy
+    from pathlib import Path
+    ref = refs.by_id("hollow_purple")
+    hero, (r1, r2) = b["hero"], b["rivals"]
+    if "QUOTES" in globals() and b.get("lang", "en") != "en":
+        b = dict(b)
+        b["end_lines"], b["end_sub"], b["caption"] = QUOTES["en"]["exam_breakthrough"]   # video text is English
+    tpl = json.loads((Path(__file__).parent / "templates" / "exam_breakthrough.json").read_text(encoding="utf-8"))
+    sc = copy.deepcopy(tpl)
+    sc["cast"] = {"r1": {"label": r1, "core": _core(r1, "cyan")}, "hero": {"label": hero, "core": _core(hero, "violet")},
+                  "r2": {"label": r2, "core": _core(r2, "gold")}}
+    for sh in sc["shots"]:
+        for ev in sh.get("events", []):
+            if ev.get("do") == "text":
+                ev["text"] = ev["text"].replace("{HERO}", hero)
+        if sh.get("scene") == "title":
+            sh["params"]["lines"] = b["end_lines"]
+            sh["params"]["sub"] = b.get("end_sub", "")
+    wrapped = _wrap(b, sc["cast"], sc["shots"], ref)
+    sc["meta"] = {**wrapped["meta"], "template": "exam_breakthrough"}
+    return sc
+
+
 BUILDERS = {"classroom_rematch": build_classroom, "duel_power": build_duel, "grind_levelup": build_grind,
-            "adaptation": build_adaptation, "towers": build_towers}
+            "adaptation": build_adaptation, "towers": build_towers, "exam_breakthrough": build_exam_breakthrough}
 
 
 def _wrap(b: dict, cast: dict, shots: list, ref: dict) -> dict:

@@ -17,6 +17,8 @@ never in the text.
   speedlines      radial anime speed lines
   slash           invisible cuts across the screen
   light_pillar    a beam of light shoots up from a point (finished tower, ascension)
+  purple_launch   the purple sphere fired straight at the camera (fills the frame, flash)
+  glance          dashed eye-line from a head to the neighbour's paper (comparison)
 """
 from __future__ import annotations
 
@@ -249,7 +251,8 @@ class HollowPurple(VFX):
         lt = min(self.lt(ctx), self.dur)
         st = actors.get(self.caster)
         if st is not None and lt < self.c3:
-            st.look.eyes_amt = max(st.look.eyes_amt, out_quad(win(lt, 0.0, 0.4)))
+            if self.ev.get("eyes", True):
+                st.look.eyes_amt = max(st.look.eyes_amt, out_quad(win(lt, 0.0, 0.4)))
             st.look.core_amt = max(st.look.core_amt, 1.0 + 1.2 * win(lt, 0, self.c2))
         # darken the world while charging
         k = win(lt, 0, self.c1 * 0.8) * (1 - win(lt, self.c3 + 0.4, self.c3 + 1.6))
@@ -272,6 +275,8 @@ class HollowPurple(VFX):
         if mt <= lt < mt + 0.12:
             ctx.flash = max(ctx.flash, 0.85 * (1 - (lt - mt) / 0.12))
             ctx.flash_c = "#f5e8ff"
+        if not self.ev.get("fire", True):
+            return
         if self.c2 <= lt < self.c2 + 2.0 / ctx.fps:
             ctx.impact = 1.0
         if self.c2 <= lt < self.c3 + 0.8:
@@ -324,7 +329,7 @@ class HollowPurple(VFX):
                           core="#faf5ff", rim="#a855f7", w=2.0, a=0.9)
 
         def fired(c):
-            if lt < self.c2:
+            if lt < self.c2 or not self.ev.get("fire", True):
                 return
             pos, R, dist_ = self._sphere(lt, mp, d)
             fade = 1 - win(lt, self.c3 + 0.3, self.dur)
@@ -378,6 +383,16 @@ class HollowPurple(VFX):
                     c.drawCircle(px, py, 1.5 + rnd2.random() * 3, gfx.paint("#c4b5fd", 0.8 * fade * (1 - min(1, ph)),
                                                                               blend=gfx.ADD))
 
+        if not self.ev.get("fire", True) and lt >= self.c2:
+            # hold the merged sphere (the shot cuts to a launch / another angle)
+            def held(c):
+                R = r * 1.4 * (1 + 0.06 * math.sin(ctx.t * 22))
+                swirl_rings(c, *mp, R, ctx.t * 4, "#c084fc")
+                particles_in(c, *mp, R, ctx.t, "#e9d5ff", n=40, seed=self.seed + 3, speed=1.6)
+                gfx.orb(c, *mp, R, "#9333ea", a=1.0)
+                gfx.glow_circle(c, *mp, R * 3.0, "#a855f7", 0.22, spread=2.5)
+            ctx.add("fx", held, z=2)
+            return
         ctx.add("fx", charge, z=1)
         ctx.add("fx", merged, z=2)
         ctx.add("fx", fired, z=3)
@@ -973,6 +988,128 @@ class Slash(VFX):
         ctx.add("fx", draw, z=6)
 
 
+class PurpleLaunch(VFX):
+    """The purple sphere launched straight AT the camera: it pulses, then rushes toward the
+    lens, swallows the frame and ends in a white-violet flash (cut to the hole)."""
+    default_dur = 1.4
+
+    def __init__(self, ev, shot):
+        super().__init__(ev, shot)
+        self.hold = float(ev.get("hold", 0.45))
+        self.travel = float(ev.get("travel", 0.75))
+        self.dur = float(ev.get("dur", self.hold + self.travel + 0.1))
+        self.r = float(ev.get("r", 60))
+
+    def sounds(self):
+        return [(0.0, "hum", 0.6), (max(0.0, self.hold - 0.35), "riser", 0.5), (self.hold, "boom", 1.0),
+                (self.hold, "hit", 0.8), (self.hold + 0.05, "whoosh", 0.9)]
+
+    def _p(self, lt):
+        return win(lt, self.hold, self.hold + self.travel)
+
+    def pre(self, ctx, actors):
+        lt = self.lt(ctx)
+        if ctx.t < self.t0 or lt > self.dur:
+            return
+        ctx.darken = max(ctx.darken, 0.45)
+        ctx.desat = max(ctx.desat, 0.3)
+        if lt < self.hold:
+            ctx.shake = max(ctx.shake, 0.15 + 0.25 * lt / max(self.hold, 0.01))
+            return
+        p = self._p(lt)
+        if lt < self.hold + 2.0 / ctx.fps:
+            ctx.impact = 1.0
+        ctx.shake = max(ctx.shake, 0.4 + 0.8 * p)
+        ctx.chroma = max(ctx.chroma, 0.3 + 0.9 * p)
+        ctx.zoom_punch += 0.05 * p
+        if p > 0.72:
+            k = (p - 0.72) / 0.28
+            ctx.flash = max(ctx.flash, min(1.0, k * k * 1.15))
+            ctx.flash_c = gfx.mix("#c084fc", "#ffffff", k)
+
+    def build(self, ctx, actors):
+        lt = self.lt(ctx)
+        if ctx.t < self.t0 or lt > self.dur:
+            return
+        origin = anchor(ctx, self.ev.get("at", [0.5, 0.5]))
+        cam = getattr(ctx, "cam", (0.0, 0.0, 1.0))
+        target = (ctx.W / 2 + cam[0], ctx.H / 2 + cam[1])
+        zoom = cam[2] or 1.0
+        r = self.r
+
+        def draw(c):
+            if lt < self.hold:
+                R = r * (1 + 0.07 * math.sin(lt * 26)) * (1 + 0.15 * lt / max(self.hold, 0.01))
+                pos = origin
+                spin = lt * 5
+            else:
+                p = self._p(lt)
+                grow = 1.0 / (1.0 - 0.955 * in_cubic(p)) ** 1.35
+                R = r * 1.15 * grow
+                e = in_cubic(p)
+                pos = (origin[0] + (target[0] - origin[0]) * e, origin[1] + (target[1] - origin[1]) * e)
+                spin = lt * 9
+            gfx.glow_circle(c, *pos, R * 2.2, "#7c3aed", 0.28, spread=2.6)
+            swirl_rings(c, *pos, R, spin, "#d8b4fe", n=3)
+            particles_in(c, *pos, R, lt, "#ede9fe", n=46, seed=self.seed + 3, speed=2.2)
+            gfx.orb(c, *pos, R, "#9333ea", a=1.0)
+            rnd = random.Random(int(lt * 24) + self.seed)
+            for _ in range(5):
+                ang = rnd.random() * 2 * math.pi
+                L = R * (1.5 + rnd.random())
+                draw_bolt(c, bolt(rnd, *pos, pos[0] + math.cos(ang) * L, pos[1] + math.sin(ang) * L, segs=6),
+                          core="#faf5ff", rim="#a855f7", w=2.0 + R * 0.01, a=0.9)
+
+        ctx.add("fx", draw, z=8)
+        if lt >= self.hold:
+            p = self._p(lt)
+            ctx.add("screen", lambda c: speed_lines(c, ctx.W / 2, ctx.H / 2, ctx.W * 1.1, ctx.T, color="#e9d5ff",
+                                                    a=0.25 + 0.45 * p, n=60, inner=0.5 - 0.3 * p), z=2)
+
+
+class Glance(VFX):
+    """Dashed 'eye-line' from a head to what it keeps looking at (comparison), synced with the
+    look_around mod: looking left -> line to the left target, right -> right target."""
+    default_dur = 3.0
+
+    def build(self, ctx, actors):
+        from . import rig
+        lt = self.lt(ctx)
+        if ctx.t < self.t0 or lt > self.dur:
+            return
+        st = actors.get(self.ev.get("who"))
+        if st is None or st.joints is None:
+            return
+        v = rig.look_phase(ctx.t, float(self.ev.get("rate", 1.3)))
+        if abs(v) < 0.75:
+            return
+        side = 1 if v > 0 else -1
+        cands = [actors[a] for a in self.ev.get("targets", []) if a in actors and actors[a].joints is not None]
+        cands = [a for a in cands if (a.x - st.x) * side > 0]
+        if not cands:
+            return
+        tg = min(cands, key=lambda a: abs(a.x - st.x))
+        hx, hy = st.joints.head
+        x0, y0 = hx + side * st.s * 0.55, hy - st.s * 0.15
+        tj = tg.joints
+        x1 = (tj.ha["l"][0] + tj.ha["r"][0]) / 2
+        y1 = (tj.ha["l"][1] + tj.ha["r"][1]) / 2 - tg.s * 0.25
+        fade = (abs(v) - 0.75) / 0.25 * (1 - win(lt, self.dur - 0.3, self.dur))
+        color = self.ev.get("color", "#f4f4f2")
+
+        def draw(c):
+            L = math.hypot(x1 - x0, y1 - y0) or 1
+            n = int(L / (st.s * 0.32))
+            for i in range(n):
+                if i % 2:
+                    continue
+                a0, a1 = i / n, min(1.0, (i + 1) / n)
+                c.drawLine(x0 + (x1 - x0) * a0, y0 + (y1 - y0) * a0, x0 + (x1 - x0) * a1, y0 + (y1 - y0) * a1,
+                           gfx.paint(color, 0.85 * fade, stroke=max(2.0, st.s * 0.07)))
+            c.drawCircle(x1, y1, st.s * 0.16, gfx.paint(color, 0.9 * fade, stroke=max(2.0, st.s * 0.06)))
+        ctx.add("fx", draw, z=1)
+
+
 class LightPillar(VFX):
     """A vertical beam of light shoots up (finished tower, ascension, level up)."""
     default_dur = 4.0
@@ -1057,6 +1194,8 @@ REGISTRY = {
     "speedlines": SpeedLines,
     "slash": Slash,
     "light_pillar": LightPillar,
+    "glance": Glance,
+    "purple_launch": PurpleLaunch,
 }
 
 

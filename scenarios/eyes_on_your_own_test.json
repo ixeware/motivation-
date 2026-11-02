@@ -1,0 +1,177 @@
+{
+  "meta": {
+    "slug": "eyes_on_your_own_test",
+    "reference": "hollow_purple (fired at the camera) + blindfold",
+    "caption": "He failed while watching everyone else's paper. The day he stopped looking, he went straight through.",
+    "hashtags": ["motivation", "ego", "discipline", "mindset", "focus", "comparison", "fyp"]
+  },
+  "style": {
+    "fps": 60,
+    "accent": "#a855f7",
+    "seal": "E",
+    "watermark": "@YOURHANDLE",
+    "grade": {"saturation": 0.92, "contrast": 1.07, "bloom": 0.55, "vignette": 0.6, "grain": 0.04}
+  },
+  "music": {"source": "synth", "bpm": 100, "snap_cuts": true,
+            "suggest": "dark phonk / slowed cinematic with a hard drop on the launch"},
+  "cast": {
+    "discipline": {"label": "DISCIPLINE", "core": "cyan"},
+    "ego": {"label": "EGO", "core": "violet"},
+    "talent": {"label": "TALENT", "core": "gold"}
+  },
+  "shots": [
+    {
+      "scene": "classroom", "dur": 3.0,
+      "params": {"walker": {"from": -0.2, "to": 1.25, "t0": 0.0, "t1": 2.4}},
+      "camera": {"from": {"zoom": 1.0, "x": -20}, "to": {"zoom": 1.06, "x": 10}},
+      "actors": {
+        "discipline": {"pose": "sit", "level": 0.0},
+        "ego": {"pose": "sit", "level": 0.0},
+        "talent": {"pose": "sit", "level": 0.0}
+      },
+      "events": [
+        {"t": 0.3, "do": "text", "text": "FINAL EXAM.", "dur": 2.5},
+        {"t": 1.5, "do": "mods", "who": "*", "mods": {"writing": 1}},
+        {"t": 1.5, "do": "level", "who": "talent", "to": 0.35, "dur": 1.5, "ease": "linear"},
+        {"t": 1.5, "do": "level", "who": "discipline", "to": 0.2, "dur": 1.5, "ease": "linear"},
+        {"t": 1.5, "do": "level", "who": "ego", "to": 0.08, "dur": 1.5, "ease": "linear"}
+      ]
+    },
+    {
+      "scene": "classroom", "dur": 3.0,
+      "camera": {"from": {"on": "ego", "zoom": 1.22, "y": 40}, "to": {"on": "ego", "zoom": 1.3, "y": 30}},
+      "actors": {
+        "discipline": {"pose": "sit", "level": 0.2, "mods": {"writing": 1}},
+        "ego": {"pose": "sit", "level": 0.08, "mods": {"look_around": 1.0, "look_rate": 1.1}},
+        "talent": {"pose": "sit", "level": 0.35, "mods": {"writing": 1.5}}
+      },
+      "events": [
+        {"t": 0.2, "do": "text", "text": "EGO KEPT CHECKING THEIR PAPERS.", "dur": 2.7},
+        {"t": 0.0, "do": "vfx", "type": "glance", "who": "ego", "targets": ["discipline", "talent"], "rate": 1.1,
+         "dur": 3.0},
+        {"t": 0.0, "do": "level", "who": "talent", "to": 1.0, "dur": 1.2, "ease": "out"},
+        {"t": 0.0, "do": "level", "who": "discipline", "to": 0.75, "dur": 3.0, "ease": "linear"},
+        {"t": 0.0, "do": "level", "who": "ego", "to": 0.2, "dur": 3.0, "ease": "linear"},
+        {"t": 1.35, "do": "pose", "who": "talent", "pose": "sleep", "dur": 0.4, "mods": {"writing": 0}},
+        {"t": 1.6, "do": "zzz", "who": "talent", "on": true}
+      ]
+    },
+    {
+      "scene": "classroom", "dur": 2.8,
+      "camera": {"from": {"zoom": 1.04}, "to": {"zoom": 1.12, "y": -20}},
+      "actors": {
+        "discipline": {"pose": "sit", "level": 0.75},
+        "ego": {"pose": "sit", "level": 0.2},
+        "talent": {"pose": "sleep", "level": 1.0, "zzz": true}
+      },
+      "events": [
+        {"t": 0.0, "do": "level", "who": "discipline", "to": 1.0, "dur": 0.4},
+        {"t": 0.3, "do": "sheet", "who": "discipline", "mark": "A"},
+        {"t": 0.6, "do": "sheet", "who": "talent", "mark": "A-"},
+        {"t": 1.0, "do": "sheet", "who": "ego", "mark": "F"},
+        {"t": 0.35, "do": "text", "text": "HE WATCHED THEM. NOT THE TEST.", "dur": 2.3},
+        {"t": 1.3, "do": "pose", "who": "ego", "pose": "head_in_hands", "dur": 0.3},
+        {"t": 1.3, "do": "core", "who": "ego", "to": 0.35, "dur": 0.5},
+        {"t": 1.4, "do": "pose", "who": "discipline", "pose": {"base": "sit", "head_dx": 0.32}, "dur": 0.3},
+        {"t": 1.5, "do": "emote", "who": "discipline", "text": "...", "dur": 1.1}
+      ]
+    },
+    {
+      "scene": "closeup", "dur": 2.6,
+      "camera": {"from": {"zoom": 1.0}, "to": {"zoom": 1.12, "y": -40}, "dof": 1.6},
+      "actors": {
+        "ego": {"pose": "head_in_hands", "level": 0.2, "core": 0.35}
+      },
+      "events": [
+        {"t": 0.3, "do": "text", "text": "SO HE STOPPED LOOKING.", "dur": 2.2},
+        {"t": 0.35, "do": "pose", "who": "ego", "pose": "hands_on_head", "dur": 0.35},
+        {"t": 0.5, "do": "band", "who": "ego", "to": 1.0, "dur": 0.7, "ease": "out"},
+        {"t": 1.25, "do": "pose", "who": "ego", "pose": "sit", "dur": 0.45},
+        {"t": 1.4, "do": "core", "who": "ego", "to": 1.6, "dur": 0.5},
+        {"t": 1.4, "do": "punch", "amp": 0.05, "sfx": "hit", "gain": 0.5}
+      ]
+    },
+    {
+      "scene": "study", "dur": 2.6,
+      "params": {"hours": [23.0, 30.0], "books": [1, 7]},
+      "camera": {"from": {"zoom": 1.0}, "to": {"zoom": 1.07}},
+      "actors": {"ego": {"pose": "write", "mods": {"writing": 1.2}, "band": 1.0, "level": 0.2}},
+      "events": [
+        {"t": 0.25, "do": "text", "text": "NO RIVALS. NO SCOREBOARD.", "dur": 2.2},
+        {"t": 0.1, "do": "level", "who": "ego", "to": 0.7, "dur": 2.4, "ease": "linear"}
+      ]
+    },
+    {
+      "scene": "board", "dur": 1.8,
+      "camera": {"from": {"zoom": 1.05}, "to": {"zoom": 1.13, "x": 60}},
+      "actors": {"ego": {"pose": "board_write", "mods": {"board": 1}, "band": 1.0, "level": 0.7}},
+      "events": [
+        {"t": 0.2, "do": "text", "text": "JUST THE WORK.", "dur": 1.5},
+        {"t": 0.1, "do": "level", "who": "ego", "to": 0.9, "dur": 1.6, "ease": "linear"}
+      ]
+    },
+    {
+      "scene": "classroom", "dur": 3.4,
+      "params": {"sky": "dawn"},
+      "camera": {"from": {"zoom": 1.04, "y": 0}, "to": {"on": "ego", "zoom": 1.2, "y": -30}},
+      "actors": {
+        "discipline": {"pose": "sit", "level": 0.0, "mods": {"writing": 1}},
+        "ego": {"pose": "sit", "level": 0.0, "band": 1.0, "mods": {"writing": 1.7}},
+        "talent": {"pose": "sit", "level": 0.0, "mods": {"writing": 1}}
+      },
+      "events": [
+        {"t": 0.15, "do": "text", "text": "RETEST.", "dur": 1.2},
+        {"t": 0.1, "do": "level", "who": "ego", "to": 1.0, "dur": 1.15, "ease": "out", "text": "MAX"},
+        {"t": 0.1, "do": "level", "who": "discipline", "to": 0.35, "dur": 1.5, "ease": "linear"},
+        {"t": 0.1, "do": "level", "who": "talent", "to": 0.4, "dur": 1.5, "ease": "linear"},
+        {"t": 0.45, "do": "pose", "who": "discipline", "pose": {"base": "sit", "head_dx": 0.32}, "dur": 0.3},
+        {"t": 0.55, "do": "pose", "who": "talent", "pose": {"base": "sit", "head_dx": -0.32}, "dur": 0.3},
+        {"t": 0.5, "do": "emote", "who": "discipline", "text": "?", "dur": 1.0},
+        {"t": 0.6, "do": "emote", "who": "talent", "text": "?", "dur": 1.0},
+        {"t": 1.35, "do": "mods", "who": "ego", "mods": {"writing": 0}},
+        {"t": 1.4, "do": "move", "who": "ego", "dy": -95, "dur": 0.35, "ease": "out_cubic"},
+        {"t": 1.45, "do": "pose", "who": "ego", "pose": "hands_out", "dur": 0.3},
+        {"t": 1.55, "do": "vfx", "type": "hollow_purple", "caster": "ego", "charge": 0.85, "merge": 0.75,
+         "fire": false, "eyes": false, "r": 34, "dur": 2.0, "from": {"who": "ego", "at": "core"}},
+        {"t": 1.9, "do": "emote", "who": "discipline", "text": "!", "dur": 1.4},
+        {"t": 1.95, "do": "emote", "who": "talent", "text": "!", "dur": 1.4},
+        {"t": 1.9, "do": "pose", "who": "discipline", "pose": {"base": "hands_on_head", "lean": -14}, "dur": 0.3},
+        {"t": 1.95, "do": "pose", "who": "talent", "pose": {"base": "hands_on_head", "lean": 14}, "dur": 0.3}
+      ]
+    },
+    {
+      "scene": "classroom", "dur": 1.3, "climax": true, "climax_at": 0.45,
+      "camera": {"from": {"on": "ego", "zoom": 1.9, "y": 40}, "to": {"on": "ego", "zoom": 2.05, "y": 50}, "dof": 1.4},
+      "params": {"sky": "dawn", "front_heads": false},
+      "actors": {
+        "ego": {"pose": "cast", "band": 1.0, "yoff": -95, "level": 1.0, "level_text": "MAX", "core": 1.8, "seat": 1}
+      },
+      "events": [
+        {"t": 0.0, "do": "vfx", "type": "purple_launch", "at": {"who": "ego", "at": "core", "dy": -0.3},
+         "r": 48, "hold": 0.45, "travel": 0.75, "dur": 1.3}
+      ]
+    },
+    {
+      "scene": "tunnel", "dur": 4.6, "in": "flash", "in_color": "#f3e8ff",
+      "camera": {"dof": 0},
+      "actors": {
+        "discipline": {"lx": -260, "seated": true, "pose": "hands_on_head"},
+        "ego": {"lx": 0, "pose": "cast", "band": 1.0, "core": 1.4},
+        "talent": {"lx": 260, "seated": true, "pose": "hands_on_head"}
+      },
+      "events": [
+        {"t": 0.0, "do": "sfx", "sfx": "rumble", "gain": 0.9},
+        {"t": 0.95, "do": "sfx", "sfx": "whoosh", "gain": 0.5},
+        {"t": 1.55, "do": "sfx", "sfx": "whoosh", "gain": 0.5},
+        {"t": 2.1, "do": "sfx", "sfx": "whoosh", "gain": 0.6},
+        {"t": 0.25, "do": "emote", "who": "discipline", "text": "!", "dur": 1.2},
+        {"t": 0.3, "do": "emote", "who": "talent", "text": "!", "dur": 1.2}
+      ]
+    },
+    {
+      "scene": "title", "dur": 3.0, "out": "fade",
+      "params": {"lines": ["HE STOPPED COMPARING.", "AND WENT STRAIGHT", "THROUGH.*"],
+                 "sub": "EYES ON YOUR OWN TEST", "size": 68, "accent": "#a855f7"}
+    }
+  ]
+}

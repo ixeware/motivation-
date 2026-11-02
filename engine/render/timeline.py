@@ -76,6 +76,9 @@ class ActorState:
     tower_base: int = 0
     carrying: bool = False        # holding a block right now
     sparkle: float = 0.0
+    emote: str | None = None
+    emote_t: float = 0.0
+    emote_dur: float = 0.0
     extra: dict = field(default_factory=dict)
 
 
@@ -123,6 +126,7 @@ class Actor:
         self.tower_base = int(tw.get("base", 0)) if isinstance(tw, dict) else int(tw)
         self.tower_side = int(tw.get("side", 1)) if isinstance(tw, dict) else 1
         self.stacks: list[tuple[float, float, float]] = []   # (t0, t1, rate)
+        self.emotes: list[tuple[float, str, float]] = []      # (t, text, dur)
         self.build = spec.get("build", cast.get("build", base.get("build", "chunky")))
 
     # --- event application -------------------------------------------------
@@ -189,6 +193,8 @@ class Actor:
             self.tracks["sparkle"].add(t, float(ev.get("to", 1.0)), float(ev.get("dur", 0.2)), ez)
             if ev.get("hold"):
                 self.tracks["sparkle"].add(t + float(ev["hold"]), 0.0, 0.3, ez)
+        elif do == "emote":
+            self.emotes.append((t, str(ev.get("text", "?")), float(ev.get("dur", 1.2))))
         elif do == "stack":
             until = float(ev.get("until", t + float(ev.get("dur", 2.0))))
             self.stacks.append((t, until, float(ev.get("rate", 1.0))))
@@ -246,6 +252,10 @@ class Actor:
         for te, txt in self.level_texts:
             if t >= te:
                 lvl_text = txt
+        emote, emote_t, emote_dur = None, 0.0, 0.0
+        for te, txt, d in self.emotes:
+            if te <= t < te + d:
+                emote, emote_t, emote_dur = txt, t - te, d
         zz = False
         for te, on in self.zzz:
             if t >= te:
@@ -307,6 +317,9 @@ class Actor:
             tower_base=self.tower_base,
             carrying=carrying,
             sparkle=tr["sparkle"],
+            emote=emote,
+            emote_t=emote_t,
+            emote_dur=emote_dur,
         )
 
 

@@ -197,6 +197,8 @@ class Renderer:
             fx.pre(ctx, states)
         for st in states.values():
             st.joints = rig.solve(st.pose, st.x, st.y, st.s, st.facing, st.look.build)
+        _cx, _cy, _z, _r = self.camera(sh, t, states)
+        ctx.cam = (_cx, _cy, _z)
         sh["scene"].build(ctx, states)
         for fx in sh["vfx"]:
             fx.build(ctx, states)

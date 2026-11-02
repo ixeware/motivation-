@@ -18,7 +18,8 @@ description: Make a vertical motivational TikTok in the white stick-figure style
   сцену, которой нет в списке, собери её из существующих эффектов (energy_orb, domain, aura, system...)
   и опиши, чего не хватает.
 - Шаблон: classroom_rematch (оригинальный формат), duel_power (бой + сила), grind_levelup (система, прокачка),
-  adaptation (колесо), towers (чёрная сцена с прожекторами и зеркальным полом — самый «дорогой» вид).
+  adaptation (колесо), towers (чёрная сцена с прожекторами и зеркальным полом — самый «дорогой» вид),
+  exam_breakthrough (экзамен → повязка → пересдача → пурпурный прямо в камеру → дыра через всю школу).
 
 ## 2. Черновик сценария
 ```bash
