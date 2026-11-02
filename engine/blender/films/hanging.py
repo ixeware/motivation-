@@ -320,7 +320,7 @@ class Film:
             ch = self.chars[k]
             dropped = f >= RELEASE[k] + 4 and k != "ego"
             if f < SPOT_ON[k]:
-                em = 0.05
+                em = 0.015
             elif dropped:
                 em = 0.30
             else:
@@ -329,6 +329,8 @@ class Film:
             if self._last.get(k) != key:
                 ch["mat_em"].inputs["Strength"].default_value = em
                 g = 0.95 if not dropped else 0.55
+                if f < SPOT_ON[k]:
+                    g = 0.25
                 ch["mat_df"].inputs["Color"].default_value = (g, g, g * 0.99, 1)
                 self._last[k] = key
 
@@ -577,7 +579,7 @@ class Film:
             out.append((hx, hy, 0.035, (255, 70, 50), 0.6))
         if DROP <= f < DROP + 10:
             sx, sy = self._screen((EGO_X, 0, BAR_Z))
-            out.append((sx, sy, 0.45, (255, 235, 230), 0.9 * (1 - (f - DROP) / 10)))
+            out.append((sx, sy, 0.42, (255, 235, 230), 0.6 * (1 - (f - DROP) / 10)))
         return out
 
     def overlay(self, f):
@@ -600,7 +602,9 @@ class Film:
             col = (255, 110, 95) if 238 <= f < DROP else (255, 255, 255)
             ops.append((f"{s // 60}:{s % 60:02d}", 0.5, 0.215, int(78 * pop), True, col, clamp((f - 21) / 4), 6))
         if 20 <= f < 398:
-            ops.append(("LAST ONE HANGING WINS.", 0.5, 0.115, 50, True, (255, 255, 255), clamp((f - 19) / 6), 3))
+            a = clamp((f - 19) / 6) * (1.0 - ramp(f, 242, 248) * (1 - ramp(f, 298, 306)))
+            if a > 0:
+                ops.append(("LAST ONE HANGING WINS.", 0.5, 0.115, 50, True, (255, 255, 255), a, 3))
         if f >= 398:
             ops.append(("YOU CAN'T OUTLAST SOMEONE", 0.5, 0.100, 46, True, (255, 255, 255), clamp((f - 397) / 3), 3))
         if f >= 405:
