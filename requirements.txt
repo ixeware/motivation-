@@ -5,3 +5,4 @@ librosa>=0.10        # beat / drop detection
 yt-dlp>=2026.10.0    # TikTok sounds (radar + fetch)
 requests>=2.31       # TikTok Research API
 anthropic>=2.0       # optional: Claude planner for `make`
+bpy==5.2.3; python_version == "3.13"   # optional: 3D shorts (Blender as a module), see docs/3D.md

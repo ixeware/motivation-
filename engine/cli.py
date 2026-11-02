@@ -11,6 +11,7 @@
   python -m engine music grid assets/music/user/song.wav             # exact beat grid + phrase starts
   python -m engine mocap search sitting                             # Mixamo catalog (no login)
   python -m engine mocap fetch --token-file ~/.mixamo_token         # download the clip library (your session)
+  python -m engine film procrastinator --preview                    # 3D short (Blender): draft / final
   python -m engine refs | poses | scenes                             # catalogs
 """
 from __future__ import annotations
@@ -110,6 +111,14 @@ def _cmd_mocap(a):
             print(f"{k:10} {'ok ' if ok else '-- '} {spec}")
 
 
+def _cmd_film(a):
+    from .blender.run import run
+    stills = [int(x) for x in a.still.split(",")] if a.still else None
+    res = run(a.name, preview=a.preview, stills=stills, step=a.step, f_from=a.f_from, f_to=a.f_to,
+              samples=a.samples, finish_only=a.finish_only)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+
+
 def _cmd_catalog(a):
     if a.cmd == "refs":
         from .references import REFERENCES
@@ -174,6 +183,17 @@ def main(argv=None):
     mo.add_argument("--fps", type=int, default=30)
     mo.add_argument("--top", type=int, default=20)
     mo.set_defaults(fn=_cmd_mocap)
+
+    fi = sub.add_parser("film", help="render a 3D short from engine/blender/films/<name>.py")
+    fi.add_argument("name")
+    fi.add_argument("--preview", action="store_true", help="360x640 draft")
+    fi.add_argument("--still", help="only these frames, e.g. 30,120,241")
+    fi.add_argument("--step", type=int, default=1)
+    fi.add_argument("--from", dest="f_from", type=int)
+    fi.add_argument("--to", dest="f_to", type=int)
+    fi.add_argument("--samples", type=int)
+    fi.add_argument("--finish-only", action="store_true", help="skip rendering, redo post + sound")
+    fi.set_defaults(fn=_cmd_film)
 
     for name in ("refs", "poses", "scenes"):
         c = sub.add_parser(name)

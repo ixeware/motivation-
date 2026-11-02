@@ -11,6 +11,10 @@ description: Make a vertical motivational TikTok in the white stick-figure style
 финальная карточка и подстрочник. Подпись к посту (`meta.caption`) и хэштеги тоже на английском.
 Запрос пользователя может быть на русском — переводи смысл, а не дословно.
 
+Если пользователь хочет 3D-вид (Blender, «как у neuronvisuals», мокап, toon-фигуры с контуром),
+это другой путь: `docs/3D.md`. Сценарий согласуй с пользователем текстом, затем напиши модуль
+`engine/blender/films/<name>.py` по образцу `procrastinator.py` и сделай `--preview --still` перед финальным рендером.
+
 ## 1. Разбери запрос
 - Кто герой и кто соперники (архетипы: EGO, TALENT, DISCIPLINE, HARD WORK, FEAR, LAZINESS, FOCUS, DOUBT...).
   Негативные архетипы (FEAR, LAZINESS, DOUBT, FAILURE, COMFORT) — соперники, не герои.

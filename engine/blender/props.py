@@ -97,11 +97,11 @@ def laptop(name, loc, w=0.36, d=0.25, open_deg=105, screen_color=(0.75, 0.88, 1.
     return {"root": root, "base": base, "hinge": hinge, "lid": lid, "screen": scr, "glow": lo}
 
 
-def phone(name, color=(0.80, 0.90, 1.0), glow=3.0, light=6.0):
+def phone(name, color=(0.80, 0.90, 1.0), glow=3.0, light=6.0, size=1.0):
     """Phone held in the hands: thin dark slab with a bright screen facing the character, plus its glow."""
     root = kit.empty(name, (0, 0, 0), 0.05)
-    body = kit.box(f"{name}_body", (0.075, 0.009, 0.15), (0, 0, 0), bevel=0.003)
-    scr = kit.plane(f"{name}_screen", 0.066, 0.135, (0, 0.0047, 0), (math.radians(-90), 0, 0))
+    body = kit.box(f"{name}_body", (0.075 * size, 0.009, 0.15 * size), (0, 0, 0), bevel=0.003)
+    scr = kit.plane(f"{name}_screen", 0.066 * size, 0.135 * size, (0, 0.0047, 0), (math.radians(-90), 0, 0))
     kit.set_mat(body, _mat("phone", (0.05, 0.05, 0.06, 1), 0.3))
     kit.set_mat(scr, kit.emission(f"{name}_scr", color, glow))
     li = bpy.data.lights.new(f"{name}_glow", "POINT")
@@ -150,7 +150,7 @@ def calendar(name, loc, w=0.62, h=0.74):
         bg.parent = hinge
         num = kit.text(f"{pname}_num", number, size=0.30, loc=(0, -0.003, -ph * 0.40), color=col_tx, strength=1.0,
                        bold=True, spacing=1.05, parent=hinge)
-        cap = kit.text(f"{pname}_cap", caption, size=0.062, loc=(0, -0.003, -ph * 0.80), color=col_tx, strength=1.0,
+        cap = kit.text(f"{pname}_cap", caption, size=0.082, loc=(0, -0.003, -ph * 0.79), color=col_tx, strength=1.0,
                        spacing=1.15, parent=hinge)
         return {"hinge": hinge, "bg": bg, "num": num, "cap": cap}
 
@@ -159,6 +159,8 @@ def calendar(name, loc, w=0.62, h=0.74):
     def set_page(p, number=None, caption=None, red=None):
         if number is not None:
             p["num"].data.body = number
+            k = 1.0 if len(number) <= 2 else 0.74     # "DUE" must fit the page
+            p["num"].scale = (k, k, k)
         if caption is not None:
             p["cap"].data.body = caption
         if red is not None:
@@ -169,7 +171,7 @@ def calendar(name, loc, w=0.62, h=0.74):
             _set_emit(p["cap"], col_tx)
 
     return {"root": root, "board": board, "rings": rings, "front": front, "page": page, "set": set_page,
-            "size": (pw, ph)}
+            "size": (pw, ph), "hinge_z": h / 2 - 0.07}
 
 
 def _set_emit(obj, color):

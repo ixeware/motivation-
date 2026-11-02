@@ -197,11 +197,52 @@ def slash():
     return _stereo(_norm(x, 0.7), 1.0)
 
 
+def rain():
+    """5 s of rain: band-limited hiss plus random droplet ticks (loop it by cueing again)."""
+    dur = 5.0
+    n = int(SR * dur)
+    hiss = _bp(_noise(dur, 21), 900, 7000) * 0.35
+    rng = np.random.default_rng(22)
+    drops = np.zeros(n)
+    for i in rng.integers(0, n - 800, 900):
+        k = rng.uniform(0.2, 1.0)
+        drops[i:i + 300] += rng.normal(0, 1, 300) * np.exp(-np.arange(300) / 40) * k
+    x = hiss + _hp(drops, 2000) * 0.25
+    env = np.minimum(1, np.arange(n) / (SR * 0.3)) * np.minimum(1, (n - np.arange(n)) / (SR * 0.3))
+    return _stereo(_norm(x * env, 0.5), 1.0)
+
+
+def keys():
+    """1.2 s of keyboard typing: irregular soft clicks."""
+    dur = 1.2
+    n = int(SR * dur)
+    x = np.zeros(n)
+    rng = np.random.default_rng(31)
+    t = 0.0
+    while t < dur - 0.05:
+        i = int(t * SR)
+        click = _hp(rng.normal(0, 1, 500), 1800) * np.exp(-np.arange(500) / 60)
+        thock = np.sin(2 * np.pi * rng.uniform(180, 260) * np.arange(500) / SR) * np.exp(-np.arange(500) / 90) * 0.5
+        x[i:i + 500] += (click + thock)[: n - i] * rng.uniform(0.5, 1.0)
+        t += rng.uniform(0.06, 0.16)
+    return _stereo(_norm(x, 0.35), 0.4)
+
+
+def thunder():
+    """Close lightning: sharp crack into a long rolling rumble."""
+    dur = 3.0
+    t = _t(dur)
+    crack_ = _hp(_noise(dur, 41), 1200) * np.exp(-t * 18) * 1.2
+    roll = _lp(_noise(dur, 42), 220, 4) * np.exp(-t * 1.1) * (1 + 0.6 * np.sin(2 * np.pi * 2.3 * t)) * 2.5
+    boom_ = np.sin(2 * np.pi * 48 * t) * np.exp(-t * 3) * 0.8
+    return _stereo(_norm(crack_ + roll + boom_, 0.9), 0.7)
+
+
 SFX = {
     "boom": boom, "hit": hit, "crack": crack, "whoosh": whoosh, "riser": riser, "hum": hum,
     "drone": drone, "rumble": rumble, "chime": chime, "clank": clank, "paper": paper,
-    "stamp": stamp, "tick": tick, "slash": slash,
+    "stamp": stamp, "tick": tick, "slash": slash, "rain": rain, "keys": keys, "thunder": thunder,
 }
 
 # how much each cue ducks the music (0..1)
-DUCK = {"boom": 0.7, "hit": 0.45, "crack": 0.4, "rumble": 0.3, "slash": 0.3}
+DUCK = {"boom": 0.7, "hit": 0.45, "crack": 0.4, "rumble": 0.3, "slash": 0.3, "thunder": 0.5}
