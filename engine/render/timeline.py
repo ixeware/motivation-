@@ -79,6 +79,9 @@ class ActorState:
     emote: str | None = None
     emote_t: float = 0.0
     emote_dur: float = 0.0
+    sheet_score: str | None = None
+    sheet_glow: Any = None
+    sweat: float = 0.0
     extra: dict = field(default_factory=dict)
 
 
@@ -111,9 +114,9 @@ class Actor:
         }
         self.facing = int(spec.get("facing", base.get("facing", 1)))
         self.flips: list[tuple[float, int]] = []
-        self.sheets: list[tuple[float, str | None]] = []
+        self.sheets: list[tuple] = []   # (t, mark, score, glow)
         if spec.get("sheet"):
-            self.sheets.append((-10.0, spec["sheet"]))
+            self.sheets.append((-10.0, spec["sheet"], spec.get("sheet_score"), spec.get("sheet_glow")))
         self.labels: list[tuple[float, str]] = []
         self.level_texts: list[tuple[float, str]] = []
         if spec.get("level_text"):
@@ -172,9 +175,9 @@ class Actor:
             self.tracks["glitch"].add(t, 1.0, 0.05, "linear")
             self.tracks["glitch"].add(t + float(ev.get("dur", 0.5)), 0.0, 0.1, "linear")
         elif do == "sheet":
-            self.sheets.append((t, ev.get("mark")))
+            self.sheets.append((t, ev.get("mark"), ev.get("score"), ev.get("glow")))
         elif do == "sheet_off":
-            self.sheets.append((t, None))
+            self.sheets.append((t, None, None, None))
         elif do == "label":
             self.labels.append((t, ev.get("text", "")))
         elif do == "zzz":
@@ -240,10 +243,10 @@ class Actor:
         for te, f in self.flips:
             if t >= te:
                 facing = f
-        sheet, sheet_t = None, 0.0
-        for te, m in self.sheets:
+        sheet, sheet_t, sheet_score, sheet_glow = None, 0.0, None, None
+        for te, m, sc_, gl_ in self.sheets:
             if t >= te:
-                sheet, sheet_t = m, t - te
+                sheet, sheet_t, sheet_score, sheet_glow = m, t - te, sc_, gl_
         label = self.cast.get("label", self.id.upper())
         for te, txt in self.labels:
             if t >= te:
@@ -320,6 +323,9 @@ class Actor:
             emote=emote,
             emote_t=emote_t,
             emote_dur=emote_dur,
+            sheet_score=sheet_score,
+            sheet_glow=sheet_glow,
+            sweat=float(mods.get("sweat", 0.0)),
         )
 
 

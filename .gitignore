@@ -4,3 +4,4 @@ output/
 assets/music/tiktok/
 *.wav
 .DS_Store
+assets/music/user/

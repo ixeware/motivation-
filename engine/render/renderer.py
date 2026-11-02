@@ -435,8 +435,9 @@ class Renderer:
         y = {"top": H * 0.135, "center": H * 0.45, "bottom": H * 0.8}.get(pos, H * 0.135)
         if isinstance(ev.get("y"), (int, float)):
             y = float(ev["y"]) * H
-        fade_in, fade_out = float(ev.get("fade", 0.25)), float(ev.get("fade", 0.25))
-        a = min(1.0, lt / max(0.01, fade_in)) * min(1.0, (d - lt) / max(0.01, fade_out))
+        fade_in = float(ev.get("fade_in", ev.get("fade", 0.25)))
+        fade_out = float(ev.get("fade_out", ev.get("fade", 0.25)))
+        a = (min(1.0, lt / fade_in) if fade_in > 0 else 1.0) * (min(1.0, (d - lt) / fade_out) if fade_out > 0 else 1.0)
         typing = float(ev.get("type", 0.0 if style == "sub" else 0.35))
         full = ev["text"]
         n = len(full) if typing <= 0 else int(len(full) * min(1.0, lt / typing))

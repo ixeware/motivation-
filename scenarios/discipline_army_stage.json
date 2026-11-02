@@ -9,7 +9,7 @@
     "fps": 60,
     "accent": "#a78bfa",
     "seal": "M",
-    "watermark": "@YOURHANDLE",
+    "watermark": "@eyeofego",
     "grade": {"saturation": 0.9, "contrast": 1.08, "bloom": 0.5, "vignette": 0.55, "grain": 0.035}
   },
   "music": {"source": "synth", "bpm": 100, "snap_cuts": true,

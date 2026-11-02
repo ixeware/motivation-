@@ -1080,7 +1080,7 @@ class Glance(VFX):
         st = actors.get(self.ev.get("who"))
         if st is None or st.joints is None:
             return
-        v = rig.look_phase(ctx.t, float(self.ev.get("rate", 1.3)))
+        v = rig.look_phase(ctx.t, float(self.ev.get("rate", 1.3)), float(self.ev.get("offset", 0.0)))
         if abs(v) < 0.75:
             return
         side = 1 if v > 0 else -1

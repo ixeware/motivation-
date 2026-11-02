@@ -119,12 +119,18 @@ def resolve_music(sc: dict, *, verbose=True):
                 _stretch_before_climax(sc, fixed / (climax_time(sc) or fixed))
         total = total_time(sc)
         # loop from the drop if the track is shorter than the video
-        loop_from = int((drop if drop is not None else 0.0) * SR)
+        loop_from = int(float(m.get("loop_from", drop if drop is not None else 0.0)) * SR)
+        xf = int(SR * 0.04)   # crossfade length used by _xfade_concat
         while len(seg) < int((total + 1.0) * SR) and len(full) - loop_from > SR:
-            offset = (len(seg) - int(SR * 0.04)) / SR      # where the appended copy starts (video time)
-            seg = _xfade_concat(seg, full[loop_from:])
-            beats += [offset + b - loop_from / SR for b in an["beats"] if b >= loop_from / SR]
+            # start the appended copy xf samples early so the beat grid stays continuous across the seam
+            src0 = max(0, loop_from - xf)
+            offset = (len(seg) - xf) / SR - (loop_from - src0) / SR + (loop_from - src0) / SR
+            seg = _xfade_concat(seg, full[src0:])
+            beats += [offset + (b - src0 / SR) for b in an["beats"] if b >= loop_from / SR]
         audio = seg[: int((total + 1.0) * SR)]
+        if m.get("grid"):   # explicit beat grid (more exact than the tracker for pulses)
+            g0, gp = float(m["grid"]["t0"]), float(m["grid"]["period"])
+            beats = [g0 + k * gp for k in range(int((total + 1.0 - g0) / gp) + 1)]
         beats = sorted(b for b in beats if -0.5 <= b <= total + 1)
         info.update({"start": round(start, 2), "lead_in": round(lead, 2), "tempo": round(an["tempo"], 1),
                      "drop": drop})
@@ -188,8 +194,9 @@ def produce(scenario, *, out_dir: str | Path | None = None, scale: float = 1.0, 
     silent = out / "video_silent.mp4"
     r.render(silent, crf=crf)
     m = sc.get("music") or {}
-    full = mixmod.mix(r.total, r.cues, music=music, music_gain=float(m.get("gain", 0.75)))
-    sfx_only = mixmod.mix(r.total, r.cues, music=None)
+    sfx_gain = float(m.get("sfx_gain", 1.0))
+    full = mixmod.mix(r.total, r.cues, music=music, music_gain=float(m.get("gain", 0.75)), sfx_gain=sfx_gain)
+    sfx_only = mixmod.mix(r.total, r.cues, music=None, sfx_gain=sfx_gain)
     mixmod.write_wav(out / "audio_full.wav", full)
     mixmod.write_wav(out / "audio_sfx.wav", sfx_only)
     final = out / "final.mp4"

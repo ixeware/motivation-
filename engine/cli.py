@@ -7,6 +7,8 @@
   python -m engine music radar                                       # niche sound radar (no keys)
   python -m engine music fetch <tiktok_url>                          # download a sound
   python -m engine music research motivation discipline              # official Research API
+  python -m engine music strip edit.mp4 --ours output/x/final.mp4    # clean song out of a TikTok edit
+  python -m engine music grid assets/music/user/song.wav             # exact beat grid + phrase starts
   python -m engine refs | poses | scenes                             # catalogs
 """
 from __future__ import annotations
@@ -73,6 +75,20 @@ def _cmd_music(a):
         from .audio.mix import analyze
         for p in a.args:
             print(p, json.dumps({k: v for k, v in analyze(p).items() if k != "beats"}))
+    elif a.action == "strip":
+        from .music.strip import strip
+        if not a.args or not a.ours:
+            raise SystemExit("usage: music strip <tiktok_edit.mp4> --ours output/<slug>/final.mp4 [--out file.wav]")
+        out = a.out or str(ROOT / "assets" / "music" / "user" / (Path(a.args[0]).stem + "_clean.wav"))
+        print(json.dumps(strip(a.args[0], a.ours, out), ensure_ascii=False, indent=2))
+    elif a.action == "grid":
+        from .music.strip import grid
+        for p in a.args:
+            g = grid(p)
+            print(p)
+            print(f"  bpm {g['bpm']}  beat {g['period']} s  first beat {g['t0']} s")
+            print(f"  phrase starts (4 bars): {g['phrases']}")
+            print(f"  bar starts: {g['bars']}")
 
 
 def _cmd_catalog(a):
@@ -120,7 +136,7 @@ def main(argv=None):
     m.set_defaults(fn=_cmd_make)
 
     mu = sub.add_parser("music")
-    mu.add_argument("action", choices=["radar", "fetch", "research", "analyze"])
+    mu.add_argument("action", choices=["radar", "fetch", "research", "analyze", "strip", "grid"])
     mu.add_argument("args", nargs="*")
     mu.add_argument("--limit", type=int, default=30)
     mu.add_argument("--top", type=int, default=15)
@@ -128,6 +144,8 @@ def main(argv=None):
     mu.add_argument("--region")
     mu.add_argument("--generic", action="store_true", help="include 'original sound' entries")
     mu.add_argument("--json")
+    mu.add_argument("--ours", help="strip: our original render (its audio is removed from the edit)")
+    mu.add_argument("--out", help="strip: output wav")
     mu.set_defaults(fn=_cmd_music)
 
     for name in ("refs", "poses", "scenes"):

@@ -49,14 +49,33 @@ def draw_actor(c: skia.Canvas, st: ActorState, ctx: Ctx, *, label=True, sheet_sc
         rot = math.sin(ctx.t * 2.1 + st.x * 0.01) * 2.0
         stamp_t = max(0.0, (st.sheet_t - 0.18) / 0.22)
         rig.draw_sheet(c, hx, top - st.s * 0.25, st.s * sheet_scale, st.sheet, a=st.alpha * min(1, st.sheet_t / 0.12),
-                       scale=0.6 + 0.4 * k, rot=rot, stamp_t=stamp_t)
+                       scale=0.6 + 0.4 * k, rot=rot, stamp_t=stamp_t, score=st.sheet_score, glow=st.sheet_glow,
+                       t=ctx.t)
     if st.zzz:
         rig.draw_zzz(c, hx + st.s * 1.15, j.head[1] + st.s * 0.2, st.s, ctx.t, a=st.alpha)
     if st.sparkle > 0.01:
         rig.draw_sparkle(c, hx + st.s * 1.25, j.head[1] - st.s * 1.15, st.s * 0.55, ctx.t, a=st.sparkle * st.alpha)
+    if st.sweat > 0.01:
+        draw_sweat(c, j.head[0], j.head[1], st.s, ctx.t, st.sweat * st.alpha)
     if st.emote:
         draw_bubble(c, hx + st.s * 1.05, j.head[1] - st.s * 1.25, st.s, st.emote, st.emote_t, st.emote_dur,
                     a=st.alpha)
+
+
+def draw_sweat(c: skia.Canvas, hx: float, hy: float, s: float, t: float, a: float = 1.0):
+    """Sweat drops sliding down from the forehead (struggling)."""
+    for i, (side, off) in enumerate(((1, 0.0), (-1, 0.45), (1, 0.7))):
+        ph = (t * 1.3 + off) % 1.0
+        x = hx + side * s * (0.72 + 0.12 * i)
+        y = hy - s * 0.55 + ph * s * 1.1
+        al = a * math.sin(ph * math.pi)
+        r = s * 0.13
+        pth = skia.Path()
+        pth.moveTo(x, y - r * 1.9)
+        pth.cubicTo(x + r * 0.9, y - r * 0.4, x + r, y + r * 0.6, x, y + r)
+        pth.cubicTo(x - r, y + r * 0.6, x - r * 0.9, y - r * 0.4, x, y - r * 1.9)
+        c.drawPath(pth, gfx.paint("#bfe3ff", 0.95 * al))
+        c.drawPath(pth, gfx.paint("#20232b", 0.6 * al, stroke=max(1.0, s * 0.03)))
 
 
 def draw_bubble(c: skia.Canvas, x: float, y: float, s: float, text: str, lt: float, dur: float, *, a=1.0):
@@ -831,9 +850,10 @@ class Title(Scene):
                     x += gfx.text_width(wd_ + " ", fnt)
                     k += 1
             ly = y0 + (len(wrapped) - 1) * size * 1.12 + size * 0.7
-            lw = W * 0.18 * out_cubic(win(t, 0.4 + k * 0.09, 0.9 + k * 0.09))
-            c.drawLine(W / 2 - lw, ly, W / 2 + lw, ly, gfx.paint(accent, 0.9, stroke=4))
-            gfx.glow_circle(c, W / 2, ly, 10, accent, 0.6 * (lw > 1), spread=5)
+            if self.p.get("rule", False):   # optional accent line under the quote (off by default)
+                lw = W * 0.18 * out_cubic(win(t, 0.4 + k * 0.09, 0.9 + k * 0.09))
+                c.drawLine(W / 2 - lw, ly, W / 2 + lw, ly, gfx.paint(accent, 0.9, stroke=4))
+                gfx.glow_circle(c, W / 2, ly, 10, accent, 0.6 * (lw > 1), spread=5)
             if sub:
                 a = out_cubic(win(t, 0.9 + k * 0.09, 1.4 + k * 0.09))
                 sf = gfx.font(gfx.MONO, 34)

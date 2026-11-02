@@ -9,7 +9,7 @@
     "fps": 30,
     "accent": "violet",
     "seal": "E",
-    "watermark": "@YOURHANDLE",
+    "watermark": "@eyeofego",
     "hook": {"text": "TALENT VS HARD WORK", "from": 0.2, "to": 3.2}
   },
   "music": {"source": "synth", "bpm": 100, "snap_cuts": true,

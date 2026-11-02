@@ -750,7 +750,7 @@ def _wrap(b: dict, cast: dict, shots: list, ref: dict) -> dict:
     return {
         "meta": {"slug": slug, "request": b.get("request", ""), "template": b["template"], "reference": ref["id"],
                  "caption": b.get("caption", ""), "hashtags": b.get("hashtags", HASHTAGS)},
-        "style": {"fps": 30, "accent": ref["color"], "watermark": "@YOURHANDLE",
+        "style": {"fps": 30, "accent": ref["color"], "watermark": "@eyeofego",
                   "hook": {"text": b.get("hook", ""), "from": 0.2, "to": 3.0}},
         "music": {"source": "synth", "bpm": 100, "snap_cuts": True,
                   "suggest": "dark phonk / cinematic trap with a hard drop (see: python -m engine music radar)"},

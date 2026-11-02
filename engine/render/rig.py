@@ -78,6 +78,10 @@ POSES: dict[str, dict] = {
     "squat_slump": dict(view="front", head_drop=0.55, slump=0.15, la1=12, la2=-24, ra1=12, ra2=-24, **_SQUAT),
     "kneel_front": dict(view="front", head_drop=0.2, la1=14, la2=-10, ra1=14, ra2=-10,
                         ll1=40, ll2=-30, rl1=40, rl2=-30),
+    # seated struggle (exam): thinking, scratching the head, stretching
+    "sit_think": dict(view="front", head_dx=0.06, la1=10, la2=-30, ra1=46, ra2=-152),
+    "sit_scratch": dict(view="front", la1=10, la2=-30, ra1=104, ra2=-140),
+    "sit_stretch": dict(view="front", la1=150, la2=168, ra1=150, ra2=168),
 
     # ---- side view (study / board / arena) ----
     "sit_side": dict(view="side", lean=6, la1=28, la2=80, ra1=34, ra2=86, ll1=90, ll2=2, rl1=88, rl2=-2),
@@ -173,7 +177,7 @@ def apply_mods(p: dict, mods: dict, t: float) -> dict:
         p["lean"] += math.sin(t * 9) * 3 * amp
     if mods.get("look_around"):
         amp = mods["look_around"]
-        v = look_phase(t, mods.get("look_rate", 1.3))
+        v = look_phase(t, mods.get("look_rate", 1.3), mods.get("look_offset", 0.0))
         p["head_dx"] += 0.34 * amp * v
         p["lean"] += 5 * amp * v
     if mods.get("pant"):
@@ -183,9 +187,10 @@ def apply_mods(p: dict, mods: dict, t: float) -> dict:
     return p
 
 
-def look_phase(t: float, rate: float = 1.3) -> float:
-    """-1 (looking left) .. +1 (looking right): quick glances with short holds (comparing)."""
-    v = math.sin(t * rate * 2 * math.pi)
+def look_phase(t: float, rate: float = 1.3, offset: float = 0.0) -> float:
+    """-1 (looking left) .. +1 (looking right): quick glances with short holds (comparing).
+    offset (radians): pi/2 puts the extremes exactly on t = 0, 1/(2 rate), ... (use it to land on beats)."""
+    v = math.sin(t * rate * 2 * math.pi + offset)
     return math.copysign(abs(v) ** 0.35, v)
 
 
@@ -593,11 +598,15 @@ def draw_label(canvas, x: float, head_y: float, s: float, text: str, *, a=1.0, l
 
 
 def draw_sheet(canvas, cx: float, bottom: float, s: float, mark: str, *, a=1.0, scale=1.0, rot=0.0,
-               stamp_c="stamp", stamp_t=1.0):
-    """Graded paper (reference prop): white sheet, red circled mark, grey lines."""
+               stamp_c="stamp", stamp_t=1.0, score: str | None = None, glow=None, t: float = 0.0):
+    """Graded paper (reference prop): white sheet, red circled mark, grey lines, optional red score
+    ("100") written at the top and an optional coloured glow around the sheet."""
     if a <= 0.01:
         return
     w, h = s * 1.45 * scale, s * 1.9 * scale
+    if glow:
+        pulse = 0.8 + 0.2 * math.sin(t * 9)
+        gfx.glow_circle(canvas, cx, bottom - h / 2, h * 0.75, glow, 0.55 * a * pulse, spread=2.2)
     canvas.save()
     canvas.translate(cx, bottom - h / 2)
     canvas.rotate(rot)
@@ -617,6 +626,19 @@ def draw_sheet(canvas, cx: float, bottom: float, s: float, mark: str, *, a=1.0, 
         canvas.drawCircle(0, cy, ra, gfx.paint(stamp_c, sa, stroke=s * 0.07 * scale))
         size = ra * (1.25 if len(mark) == 1 else 1.0)
         gfx.draw_text(canvas, mark, 0, cy + size * 0.36, size=size, face=gfx.DISPLAY, c=stamp_c, a=sa)
+        if score:
+            # the teacher's red number in the top corner (+ double underline for a perfect score)
+            ss = s * 0.62 * scale
+            canvas.save()
+            canvas.translate(w * 0.47, -h * 0.5 - ss * 0.15)
+            canvas.rotate(-10)
+            gfx.draw_text(canvas, score, 0, 0, size=ss, face=gfx.DISPLAY, c=stamp_c, a=sa, align="center")
+            if score.strip() in ("100", "100/100"):
+                sw = gfx.text_width(score, gfx.font(gfx.DISPLAY, ss))
+                for i in range(2):
+                    canvas.drawLine(-sw / 2, ss * (0.22 + 0.16 * i), sw / 2, ss * (0.16 + 0.16 * i),
+                                    gfx.paint(stamp_c, sa, stroke=ss * 0.07))
+            canvas.restore()
     canvas.restore()
 
 

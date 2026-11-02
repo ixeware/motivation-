@@ -12,6 +12,9 @@
             "hook": {"text": "TALENT VS HARD WORK", "from": 0.2, "to": 3.0},
             "grade": {"saturation": 0.92, "contrast": 1.06, "bloom": 0.55, "vignette": 0.62, "grain": 0.07}},
   "music": {"source": "synth" | "tiktok" | "file" | "library",
+            "grid": {"t0": 0.084, "period": 0.49175},   // точная сетка долей (из `music grid`), для пульсаций
+            "loop_from": 20.25,     // трек короче ролика: с какого места зациклить (позиция в той же фразе)
+            "sfx_gain": 0.75,       // громкость эффектов относительно песни
             "url": "https://www.tiktok.com/@.../video/...",   // source=tiktok
             "file": "assets/music/track.mp3",                 // source=file
             "start": null,          // null = автоматически: дроп трека совпадает с кульминацией
@@ -45,12 +48,13 @@
 | `void` | фронтально, пустая сцена (раскрытие героя, территория) | как у `arena` |
 | `tunnel` | перспектива: камера улетает назад сквозь идеально круглую дыру в школе (стена класса → коридор со шкафчиками → кабинет → фасад → ночь), герой стоит в глубине | `cam` [[t, z], ...] путь камеры, `F`, `axis_y`, `walls` [{z, th, kind: lockers / lab / facade}], `back_z`; актёры: `lx` (смещение), `seated`, `pose` |
 | `stage` | фронтально, чёрная сцена: глянцевый пол, прожектор над каждым, башни из блоков, ярлыки на полу (уровень новых роликов референса) | `s` (размер фигур), `floor`, `reflect` (0..1), `haze`, `spot`, `spot_w`, `label_pos`, `block_w`, `block_h`, `spots` [{x, w, a}] |
-| `title` | финальная карточка | `lines` (слово с `*` красится в акцент), `sub`, `accent`, `size`, `seal` |
+| `title` | финальная карточка | `lines` (слово с `*` красится в акцент), `sub`, `accent`, `size`, `seal`, `rule` (черта под цитатой, по умолчанию выкл.) |
 
 ## Позы (`python -m engine poses`)
 
 Фронтальные: `sit`, `sit_relaxed`, `sleep`, `head_in_hands`, `hands_on_head`, `arms_up`, `fist_up`, `stand`, `stand_proud`,
 `cast`, `cast_sit`, `heaven`, `hands_out`, `hands_together`, `fire_right`, `fire_left`, `shrug`, `slumped`,
+`sit_think`, `sit_scratch`, `sit_stretch`,
 `pick_l`, `pick_r`, `place_r`, `place_l`, `carry`, `squat`, `squat_rest`, `squat_despair`, `squat_slump`, `kneel_front`.
 Боковые: `sit_side`, `write`, `think_side`, `stand_side`, `board_write`, `point`, `stance`, `punch`, `punch_back`,
 `guard`, `hit`, `kick`, `cast_side`, `float_side`, `victory_side`, `kneel_side`.
@@ -61,7 +65,7 @@
 |---|---|---|
 | `pose` | who, pose, dur, ease, mods | плавный переход в позу |
 | `move` | who, x (0..1), dy, yoff, dur | перемещение |
-| `sheet` / `sheet_off` | who, mark | лист с оценкой (звук бумаги и печати добавляется сам) |
+| `sheet` / `sheet_off` | who, mark, score (`"92"`, `"100"`), glow (цвет свечения) | лист с оценкой и красными баллами (звук бумаги и печати добавляется сам) |
 | `level` | who, to (0..1), dur, text | XP-полоса и подпись (`MAX`, `LV 2`) |
 | `core` / `eyes` / `band` / `marks` / `tint` | who, to, dur | ядро, глаза, повязка, метки, тонировка |
 | `glitch` | who, dur | глитч ярлыка |
@@ -76,7 +80,7 @@
 | `fade` / `hide` / `show` | who, to, dur | прозрачность |
 | `face` | who, facing | развернуть |
 | `shake` / `flash` / `impact` / `punch` | amp, dur, color, frames | тряска, вспышка, манга-кадр, зум-удар |
-| `text` | text, pos (top/center/bottom), dur, size, color | моно-титр с печатью по буквам |
+| `text` | text, pos (top/center/bottom), dur, size, color, fade_in, fade_out | моно-субтитр; `fade_in: 0` — продолжение того же титра в следующем плане |
 | `vfx` | type + параметры | эффект из списка ниже |
 | любое + `sfx` | sfx, gain | звук: boom, hit, crack, whoosh, riser, hum, drone, rumble, chime, clank, paper, stamp, tick, slash |
 
@@ -109,8 +113,9 @@
 `build` (`chunky` | `slim`), `label_pos` (`head` | `floor`), `tower` {`base`, `side`}, `pile` (блоков в запасе),
 `dim`, `flame`, `spot`, `sparkle`, `layer`, `alpha`, `yoff` (поднять/опустить, например встал из-за парты).
 
-Моды (`mods`): `writing`, `board`, `walk`, `fight`, `float`, `shake`, `pant`, `look_around` (+ `look_rate`) —
-вертит головой и заглядывает к соседям.
+Моды (`mods`): `writing`, `board`, `walk`, `fight`, `float`, `shake`, `pant`, `sweat` (капли пота),
+`look_around` (+ `look_rate`, `look_offset`) — вертит головой и заглядывает к соседям. Чтобы взгляды
+попадали в доли: `look_rate = 1 / (2 * доля)`, `look_offset = 1.5708`.
 
 ## Качество
 
@@ -119,3 +124,11 @@
 - `text` по умолчанию в стиле `sub` (тонкий моно-субтитр сверху), для крика — `"style": "bold"`. Перенос строки — `\n`.
 
 Длинный эффект через несколько планов: в следующем плане повторяешь тот же `vfx` с `"offset": <секунд уже прошло>`.
+
+## Монтаж под чужую песню (TikTok-эдит)
+
+1. `python -m engine music strip edit.mp4 --ours output/<slug>/final.mp4` — чистая песня без нашего старого звука.
+2. `python -m engine music grid assets/music/user/<file>.wav` — доля, первая доля, начала тактов и 4-тактовых фраз.
+3. Длительности планов кратны долям (лучше — тактам), кульминация (`climax`) — на начало фразы.
+   `music: {"source": "file", "file": ..., "start": 0, "snap_cuts": false, "grid": {...}}`.
+4. В TikTok ставь тот же звук с той же точки старта, что в присланном эдите.
