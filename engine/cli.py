@@ -9,6 +9,8 @@
   python -m engine music research motivation discipline              # official Research API
   python -m engine music strip edit.mp4 --ours output/x/final.mp4    # clean song out of a TikTok edit
   python -m engine music grid assets/music/user/song.wav             # exact beat grid + phrase starts
+  python -m engine mocap search sitting                             # Mixamo catalog (no login)
+  python -m engine mocap fetch --token-file ~/.mixamo_token         # download the clip library (your session)
   python -m engine refs | poses | scenes                             # catalogs
 """
 from __future__ import annotations
@@ -91,6 +93,23 @@ def _cmd_music(a):
             print(f"  bar starts: {g['bars']}")
 
 
+def _cmd_mocap(a):
+    from .blender import mixamo
+    if a.action == "search":
+        cl = mixamo.Client()
+        for q in a.args or ["sitting"]:
+            for r in cl.search(q)[: a.top]:
+                print(f"{r.get('name')!r:32} {r.get('description')}")
+    elif a.action == "fetch":
+        specs = a.args or [spec for spec, _ in mixamo.LIBRARY.values()]
+        for row in mixamo.fetch(specs, token_file=a.token_file, fps=a.fps):
+            print(json.dumps(row, ensure_ascii=False))
+    elif a.action == "list":
+        for k, (spec, stem) in mixamo.LIBRARY.items():
+            ok = (mixamo.CACHE / f"{stem}.fbx").exists()
+            print(f"{k:10} {'ok ' if ok else '-- '} {spec}")
+
+
 def _cmd_catalog(a):
     if a.cmd == "refs":
         from .references import REFERENCES
@@ -147,6 +166,14 @@ def main(argv=None):
     mu.add_argument("--ours", help="strip: our original render (its audio is removed from the edit)")
     mu.add_argument("--out", help="strip: output wav")
     mu.set_defaults(fn=_cmd_music)
+
+    mo = sub.add_parser("mocap", help="Mixamo clips for the 3D (Blender) videos")
+    mo.add_argument("action", choices=["search", "fetch", "list"])
+    mo.add_argument("args", nargs="*", help="search: queries; fetch: 'Name' or 'Name|description words'")
+    mo.add_argument("--token-file", help="file with your mixamo.com access token (or env MIXAMO_TOKEN)")
+    mo.add_argument("--fps", type=int, default=30)
+    mo.add_argument("--top", type=int, default=20)
+    mo.set_defaults(fn=_cmd_mocap)
 
     for name in ("refs", "poses", "scenes"):
         c = sub.add_parser(name)
