@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+output/
+assets/music/tiktok/
+*.wav
+.DS_Store

@@ -1,0 +1,138 @@
+{
+  "meta": {
+    "slug": "talent_vs_hardwork_purple",
+    "reference": "hollow_purple",
+    "caption": "Талант и труд спорили, кто сильнее. Эго просто не хотело проигрывать.",
+    "hashtags": ["motivation", "mindset", "discipline", "ego", "talent", "hardwork", "fyp"]
+  },
+  "style": {
+    "fps": 30,
+    "accent": "violet",
+    "seal": "E",
+    "watermark": "@YOURHANDLE",
+    "hook": {"text": "TALENT VS HARD WORK", "from": 0.2, "to": 3.2}
+  },
+  "music": {"source": "synth", "bpm": 100, "snap_cuts": true,
+            "suggest": "slowed dark phonk / cinematic trap with a hard drop"},
+  "cast": {
+    "talent": {"label": "TALENT", "core": "gold"},
+    "work":   {"label": "HARD WORK", "core": "cyan"},
+    "ego":    {"label": "EGO", "core": "violet", "eyes": "#7dd3fc"}
+  },
+  "shots": [
+    {
+      "scene": "arena", "dur": 3.4,
+      "params": {"spot": 0.7},
+      "camera": {"from": {"zoom": 1.3, "y": 40}, "to": {"zoom": 1.15, "y": 20}},
+      "actors": {
+        "talent": {"x": 0.32, "pose": "stance", "facing": 1, "s": 82, "mods": {"fight": 1}},
+        "work":   {"x": 0.68, "pose": "stance", "facing": -1, "s": 82, "mods": {"fight": 1}}
+      },
+      "events": [
+        {"t": 0.55, "do": "pose", "who": "talent", "pose": "punch", "dur": 0.12, "ease": "out"},
+        {"t": 0.62, "do": "pose", "who": "work", "pose": "guard", "dur": 0.1},
+        {"t": 0.66, "do": "impact", "frames": 2, "sfx": "hit"},
+        {"t": 0.66, "do": "shake", "amp": 0.5, "dur": 0.3},
+        {"t": 0.95, "do": "pose", "who": "talent", "pose": "stance", "dur": 0.25},
+        {"t": 1.35, "do": "pose", "who": "work", "pose": "punch", "dur": 0.12, "ease": "out"},
+        {"t": 1.42, "do": "pose", "who": "talent", "pose": "hit", "dur": 0.12},
+        {"t": 1.45, "do": "vfx", "type": "black_flash", "at": {"who": "work", "at": "hand_r"}, "targets": ["talent"]},
+        {"t": 1.9, "do": "pose", "who": "work", "pose": "stance", "dur": 0.25},
+        {"t": 2.0, "do": "pose", "who": "talent", "pose": "stance", "dur": 0.3},
+        {"t": 2.55, "do": "pose", "who": "talent", "pose": "kick", "dur": 0.14, "ease": "out"},
+        {"t": 2.62, "do": "pose", "who": "work", "pose": "guard", "dur": 0.1},
+        {"t": 2.68, "do": "shake", "amp": 0.6, "dur": 0.3, "sfx": "hit"},
+        {"t": 3.0, "do": "pose", "who": "talent", "pose": "stance", "dur": 0.25}
+      ]
+    },
+    {
+      "scene": "arena", "dur": 3.0,
+      "params": {"spot": 0.5},
+      "camera": {"from": {"zoom": 1.0, "y": 60}, "to": {"zoom": 0.9, "y": 140}},
+      "actors": {
+        "talent": {"x": 0.32, "pose": "stance", "facing": 1, "s": 82, "mods": {"fight": 1}},
+        "work":   {"x": 0.68, "pose": "stance", "facing": -1, "s": 82, "mods": {"fight": 1}}
+      },
+      "events": [
+        {"t": 0.0, "do": "vfx", "type": "energy_orb", "at": [0.5, 0.9], "r": 120, "grow": 2.6, "dur": 3.0,
+         "layer": "back", "color": "#9333ea"},
+        {"t": 0.5, "do": "pose", "who": "talent", "pose": "punch", "dur": 0.12},
+        {"t": 0.58, "do": "pose", "who": "work", "pose": "guard", "dur": 0.1},
+        {"t": 0.62, "do": "shake", "amp": 0.35, "dur": 0.25, "sfx": "hit", "gain": 0.6},
+        {"t": 0.9, "do": "pose", "who": "talent", "pose": "stance", "dur": 0.25},
+        {"t": 1.6, "do": "pose", "who": "work", "pose": "punch", "dur": 0.12},
+        {"t": 1.66, "do": "pose", "who": "talent", "pose": "guard", "dur": 0.1},
+        {"t": 1.7, "do": "shake", "amp": 0.35, "dur": 0.25, "sfx": "hit", "gain": 0.6},
+        {"t": 2.0, "do": "pose", "who": "work", "pose": "stance", "dur": 0.25},
+        {"t": 2.2, "do": "text", "text": "...", "pos": "bottom", "dur": 0.8, "size": 60, "color": "#c084fc"}
+      ]
+    },
+    {
+      "scene": "void", "dur": 2.6,
+      "params": {"spot": 0.35, "spot_c": "#a855f7", "tint": "#120a1f", "shadows": true},
+      "camera": {"from": {"on": "ego", "zoom": 1.9, "y": -140}, "to": {"on": "ego", "zoom": 1.55, "y": -60},
+                 "dof": 1.4},
+      "actors": {
+        "ego": {"x": 0.5, "pose": "stand", "band": 1.0, "s": 92, "mods": {"float": 1}}
+      },
+      "events": [
+        {"t": 0.35, "do": "band", "who": "ego", "to": 0.0, "dur": 0.5, "ease": "out"},
+        {"t": 0.4, "do": "eyes", "who": "ego", "to": 1.0, "dur": 0.4},
+        {"t": 0.5, "do": "text", "text": "EGO", "pos": "top", "dur": 1.6, "size": 54, "color": "#c084fc"},
+        {"t": 1.0, "do": "pose", "who": "ego", "pose": "hands_out", "dur": 0.5},
+        {"t": 1.0, "do": "vfx", "type": "hollow_purple", "caster": "ego", "charge": 1.6, "merge": 1.1,
+         "travel": 0.9, "r": 50, "dur": 2.7, "from": {"who": "ego", "at": "core", "dy": -1.6}}
+      ]
+    },
+    {
+      "scene": "void", "dur": 1.1,
+      "params": {"spot": 0.35, "spot_c": "#a855f7", "tint": "#120a1f"},
+      "camera": {"from": {"on": "ego", "zoom": 1.25, "y": -40}, "to": {"on": "ego", "zoom": 1.45, "y": -80}},
+      "actors": {
+        "ego": {"x": 0.5, "pose": "hands_out", "band": 0.0, "eyes": 1.0, "s": 92, "mods": {"float": 1}}
+      },
+      "events": [
+        {"t": 0.0, "do": "vfx", "type": "hollow_purple", "caster": "ego", "offset": 1.6, "charge": 1.6,
+         "merge": 1.1, "travel": 0.9, "r": 50, "dur": 2.7, "from": {"who": "ego", "at": "core", "dy": -1.6}},
+        {"t": 0.15, "do": "pose", "who": "ego", "pose": "hands_together", "dur": 0.35},
+        {"t": 0.8, "do": "pose", "who": "ego", "pose": "cast", "dur": 0.25},
+        {"t": 0.6, "do": "glitch", "who": "ego", "dur": 0.5}
+      ]
+    },
+    {
+      "scene": "arena", "dur": 2.8, "climax": true, "climax_at": 0.0, "in": "impact",
+      "params": {"spot": 0.5},
+      "camera": {"from": {"zoom": 0.92, "y": 120}, "to": {"zoom": 1.0, "y": 60}},
+      "actors": {
+        "talent": {"x": 0.32, "pose": "stance", "facing": 1, "s": 82},
+        "work":   {"x": 0.68, "pose": "stance", "facing": -1, "s": 82}
+      },
+      "events": [
+        {"t": 0.0, "do": "pose", "who": "talent", "pose": "guard", "dur": 0.15},
+        {"t": 0.0, "do": "pose", "who": "work", "pose": "guard", "dur": 0.15},
+        {"t": 0.0, "do": "vfx", "type": "hollow_purple", "offset": 2.7, "charge": 1.6, "merge": 1.1, "travel": 1.0,
+         "r": 64, "big": 210, "dur": 6.0, "from": [1.15, 0.95], "to": [-0.3, 0.55], "length": 2400,
+         "targets": ["talent", "work"]}
+      ]
+    },
+    {
+      "scene": "void", "dur": 2.6,
+      "params": {"spot": 0.6, "spot_c": "#a855f7", "tint": "#0f0a18"},
+      "camera": {"from": {"on": "ego", "zoom": 1.0, "y": 40}, "to": {"on": "ego", "zoom": 1.12, "y": 0}},
+      "actors": {
+        "ego": {"x": 0.5, "pose": "cast", "eyes": 1.0, "s": 86, "level": 0.15}
+      },
+      "events": [
+        {"t": 0.3, "do": "pose", "who": "ego", "pose": "stand", "dur": 0.6},
+        {"t": 0.4, "do": "level", "who": "ego", "to": 1.0, "dur": 1.3, "ease": "out_cubic", "text": "MAX"},
+        {"t": 0.9, "do": "eyes", "who": "ego", "to": 0.0, "dur": 0.8},
+        {"t": 0.9, "do": "band", "who": "ego", "to": 1.0, "dur": 0.6}
+      ]
+    },
+    {
+      "scene": "title", "dur": 3.2, "out": "fade",
+      "params": {"lines": ["TALENT ARGUED.", "WORK ARGUED.", "EGO REFUSED TO LOSE.*"],
+                 "sub": "MAKE IT FUEL, NOT A CAGE", "size": 92}
+    }
+  ]
+}

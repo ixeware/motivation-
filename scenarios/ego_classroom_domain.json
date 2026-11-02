@@ -1,0 +1,369 @@
+{
+  "meta": {
+    "slug": "ego_classroom_domain",
+    "request": "эго против таланта и дисциплины в классе, отсылка на расширение территории",
+    "template": "classroom_rematch",
+    "reference": "domain_void",
+    "caption": "Иногда гордость — лучшее топливо. Сделай её силой, а не слабостью.",
+    "hashtags": [
+      "motivation",
+      "mindset",
+      "discipline",
+      "selfimprovement",
+      "grind",
+      "fyp",
+      "ego"
+    ]
+  },
+  "style": {
+    "fps": 30,
+    "accent": "#60a5fa",
+    "watermark": "@YOURHANDLE",
+    "hook": {
+      "text": "TALENT VS DISCIPLINE VS EGO",
+      "from": 0.2,
+      "to": 3.0
+    },
+    "seal": "E"
+  },
+  "music": {
+    "source": "synth",
+    "bpm": 100,
+    "snap_cuts": true,
+    "suggest": "dark phonk / cinematic trap with a hard drop (see: python -m engine music radar)"
+  },
+  "cast": {
+    "r1": {
+      "label": "TALENT",
+      "core": "gold"
+    },
+    "r2": {
+      "label": "DISCIPLINE",
+      "core": "cyan"
+    },
+    "hero": {
+      "label": "EGO",
+      "core": "violet",
+      "eyes": "#7dd3fc"
+    }
+  },
+  "shots": [
+    {
+      "scene": "classroom",
+      "dur": 3.4,
+      "params": {
+        "walker": {
+          "from": -0.2,
+          "to": 1.25,
+          "t0": 0.0,
+          "t1": 2.6
+        }
+      },
+      "camera": {
+        "from": {
+          "zoom": 1.0,
+          "x": -30
+        },
+        "to": {
+          "zoom": 1.09,
+          "x": 20
+        }
+      },
+      "actors": {
+        "r1": {
+          "pose": "sleep",
+          "zzz": true
+        },
+        "hero": {
+          "pose": "sit",
+          "level": 0.15,
+          "band": 0.0
+        },
+        "r2": {
+          "pose": "sit",
+          "zzz": false
+        }
+      },
+      "events": [
+        {
+          "t": 0.7,
+          "do": "sheet",
+          "who": "r1",
+          "mark": "A"
+        },
+        {
+          "t": 1.3,
+          "do": "sheet",
+          "who": "r2",
+          "mark": "A-"
+        },
+        {
+          "t": 2.15,
+          "do": "sheet",
+          "who": "hero",
+          "mark": "C"
+        },
+        {
+          "t": 2.45,
+          "do": "pose",
+          "who": "hero",
+          "pose": "head_in_hands",
+          "dur": 0.3
+        },
+        {
+          "t": 2.45,
+          "do": "core",
+          "who": "hero",
+          "to": 0.35,
+          "dur": 0.6
+        }
+      ]
+    },
+    {
+      "scene": "closeup",
+      "dur": 2.3,
+      "camera": {
+        "from": {
+          "zoom": 1.0
+        },
+        "to": {
+          "zoom": 1.12,
+          "y": -30
+        },
+        "dof": 1.6
+      },
+      "actors": {
+        "hero": {
+          "pose": "head_in_hands",
+          "sheet": "C",
+          "level": 0.15,
+          "core": 0.35,
+          "band": 0.0,
+          "marks": 0.0
+        }
+      },
+      "events": [
+        {
+          "t": 0.3,
+          "do": "pose",
+          "who": "hero",
+          "pose": "slumped",
+          "dur": 1.2,
+          "ease": "sine"
+        },
+        {
+          "t": 1.3,
+          "do": "core",
+          "who": "hero",
+          "to": 1.4,
+          "dur": 0.6
+        },
+        {
+          "t": 1.35,
+          "do": "punch",
+          "amp": 0.05,
+          "sfx": "hit",
+          "gain": 0.4
+        }
+      ]
+    },
+    {
+      "scene": "study",
+      "dur": 4.4,
+      "params": {
+        "hours": [
+          23.0,
+          30.5
+        ],
+        "books": [
+          1,
+          8
+        ]
+      },
+      "camera": {
+        "from": {
+          "zoom": 1.0
+        },
+        "to": {
+          "zoom": 1.07
+        }
+      },
+      "actors": {
+        "hero": {
+          "pose": "write",
+          "mods": {
+            "writing": 1
+          },
+          "level": 0.15,
+          "core": 1.2
+        }
+      },
+      "events": [
+        {
+          "t": 0.2,
+          "do": "level",
+          "who": "hero",
+          "to": 0.85,
+          "dur": 4.0,
+          "ease": "linear"
+        }
+      ]
+    },
+    {
+      "scene": "board",
+      "dur": 2.6,
+      "camera": {
+        "from": {
+          "zoom": 1.04
+        },
+        "to": {
+          "zoom": 1.12,
+          "x": 60
+        }
+      },
+      "actors": {
+        "hero": {
+          "pose": "board_write",
+          "mods": {
+            "board": 1
+          },
+          "level": 0.85
+        }
+      }
+    },
+    {
+      "scene": "classroom",
+      "dur": 3.4,
+      "climax": true,
+      "climax_at": 0.95,
+      "in": "flash",
+      "params": {
+        "sky": "dawn",
+        "extras": 1
+      },
+      "camera": {
+        "from": {
+          "zoom": 1.05,
+          "x": 0
+        },
+        "to": {
+          "zoom": 1.16,
+          "y": -20
+        }
+      },
+      "actors": {
+        "r1": {
+          "pose": "sleep",
+          "zzz": true
+        },
+        "hero": {
+          "pose": "sit",
+          "level": 0.85,
+          "core": 1.4,
+          "band": 0.0,
+          "marks": 0.0
+        },
+        "r2": {
+          "pose": "sit",
+          "zzz": false
+        }
+      },
+      "events": [
+        {
+          "t": 0.15,
+          "do": "sheet",
+          "who": "r1",
+          "mark": "A"
+        },
+        {
+          "t": 0.3,
+          "do": "sheet",
+          "who": "r2",
+          "mark": "A-"
+        },
+        {
+          "t": 0.55,
+          "do": "pose",
+          "who": "hero",
+          "pose": "cast_sit",
+          "dur": 0.25
+        },
+        {
+          "t": 0.6,
+          "do": "vfx",
+          "type": "domain",
+          "caster": "hero",
+          "style": "void",
+          "expand_at": 0.35,
+          "dur": 2.8,
+          "frozen": [
+            "r1",
+            "r2"
+          ]
+        },
+        {
+          "t": 1.75,
+          "do": "sheet",
+          "who": "hero",
+          "mark": "A+"
+        },
+        {
+          "t": 2.0,
+          "do": "pose",
+          "who": "hero",
+          "pose": "arms_up",
+          "dur": 0.3
+        },
+        {
+          "t": 2.0,
+          "do": "level",
+          "who": "hero",
+          "to": 1.0,
+          "dur": 0.6,
+          "text": "MAX"
+        }
+      ]
+    },
+    {
+      "scene": "closeup",
+      "dur": 2.2,
+      "params": {
+        "sky": "dawn"
+      },
+      "camera": {
+        "from": {
+          "zoom": 1.1
+        },
+        "to": {
+          "zoom": 1.0
+        },
+        "dof": 1.5
+      },
+      "actors": {
+        "hero": {
+          "pose": "arms_up",
+          "sheet": "A+",
+          "level": 1.0,
+          "level_text": "MAX",
+          "core": 1.6,
+          "eyes": 1.0,
+          "marks": 0.0
+        }
+      }
+    },
+    {
+      "scene": "title",
+      "dur": 3.2,
+      "out": "fade",
+      "params": {
+        "lines": [
+          "ИНОГДА ГОРДОСТЬ —",
+          "ЛУЧШЕЕ ТОПЛИВО.*"
+        ],
+        "sub": "СДЕЛАЙ ЕЁ СИЛОЙ, А НЕ СЛАБОСТЬЮ",
+        "accent": "#60a5fa",
+        "size": 92
+      }
+    }
+  ]
+}

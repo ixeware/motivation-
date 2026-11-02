@@ -1,0 +1,90 @@
+# Формат сценария (JSON)
+
+Сценарий — это список планов (`shots`). У каждого плана своя сцена, актёры, камера и события на таймлайне.
+Время событий отсчитывается от начала плана. Примеры: `scenarios/*.json`.
+
+```jsonc
+{
+  "meta":  {"slug": "my_video", "caption": "подпись к посту", "hashtags": ["motivation", "ego"]},
+  "style": {"fps": 30, "accent": "violet", "seal": "E", "watermark": "@handle",
+            "hook": {"text": "TALENT VS HARD WORK", "from": 0.2, "to": 3.0},
+            "grade": {"saturation": 0.92, "contrast": 1.06, "bloom": 0.55, "vignette": 0.62, "grain": 0.07}},
+  "music": {"source": "synth" | "tiktok" | "file" | "library",
+            "url": "https://www.tiktok.com/@.../video/...",   // source=tiktok
+            "file": "assets/music/track.mp3",                 // source=file
+            "start": null,          // null = автоматически: дроп трека совпадает с кульминацией
+            "snap_cuts": true,      // склейки на биты
+            "gain": 0.75, "bpm": 100},
+  "cast": {"ego": {"label": "EGO", "core": "violet", "eyes": "#7dd3fc"}},
+  "shots": [
+    {"scene": "classroom", "dur": 3.4,
+     "climax": false, "climax_at": 0.0,           // один план с climax=true: его момент ставится на дроп
+     "in": "cut" | "flash" | "impact" | "fade" | "glitch" | "whoosh", "out": "cut" | "fade",
+     "params": {...},                              // параметры сцены, см. ниже
+     "camera": {"from": {"zoom": 1.0, "x": 0, "y": 0, "on": "ego"}, "to": {"zoom": 1.1},
+                "ease": "sine", "dof": 1.0, "focus": "main"},
+     "actors": {"ego": {"pose": "sit", "x": 0.5, "s": 64, "facing": 1, "level": 0.2, "sheet": "C",
+                        "band": 0, "eyes": 0, "marks": 0, "core": 1.0, "zzz": false,
+                        "mods": {"writing": 1, "board": 1, "walk": 1, "fight": 1, "float": 1, "shake": 1}}},
+     "events": [ {"t": 1.0, "do": "...", ...} ]}
+  ]
+}
+```
+
+## Сцены (`scene`)
+
+| Сцена | Вид | Параметры |
+|---|---|---|
+| `classroom` | фронтально, ряды парт (как в референсе) | `sky` (night/dawn/цвет), `walker` {from,to,t0,t1,s}, `extras` 0/1, `front_heads` |
+| `closeup` | один актёр крупно, сильный боке | `sky`, `desk` |
+| `study` | сбоку, ночная учёба: лампа, окно ночь→рассвет, часы, книги | `hours` [23, 30.5], `books` [1, 8], `dawn`, `dawn_at`, `lamp_off` |
+| `board` | сбоку, пишет на доске | `lines` [...], `reveal_from`, `reveal_until` |
+| `arena` | сбоку, тёмная сцена для боя | `spot`, `spot_c`, `tint`, `horizon`, `floor`, `shadows` |
+| `void` | фронтально, пустая сцена (раскрытие героя, территория) | как у `arena` |
+| `title` | финальная карточка | `lines` (слово с `*` красится в акцент), `sub`, `accent`, `size`, `seal` |
+
+## Позы (`python -m engine poses`)
+
+Фронтальные: `sit`, `sit_relaxed`, `sleep`, `head_in_hands`, `hands_on_head`, `arms_up`, `fist_up`, `stand`, `cast`,
+`cast_sit`, `heaven`, `hands_out`, `hands_together`, `fire_right`, `fire_left`, `shrug`, `slumped`.
+Боковые: `sit_side`, `write`, `think_side`, `stand_side`, `board_write`, `point`, `stance`, `punch`, `punch_back`,
+`guard`, `hit`, `kick`, `cast_side`, `float_side`, `victory_side`, `kneel_side`.
+
+## События (`do`)
+
+| do | Поля | Что делает |
+|---|---|---|
+| `pose` | who, pose, dur, ease, mods | плавный переход в позу |
+| `move` | who, x (0..1), dy, yoff, dur | перемещение |
+| `sheet` / `sheet_off` | who, mark | лист с оценкой (звук бумаги и печати добавляется сам) |
+| `level` | who, to (0..1), dur, text | XP-полоса и подпись (`MAX`, `LV 2`) |
+| `core` / `eyes` / `band` / `marks` / `tint` | who, to, dur | ядро, глаза, повязка, метки, тонировка |
+| `glitch` | who, dur | глитч ярлыка |
+| `label` | who, text | сменить ярлык |
+| `zzz` | who, on | «Z z z» |
+| `fade` / `hide` / `show` | who, to, dur | прозрачность |
+| `face` | who, facing | развернуть |
+| `shake` / `flash` / `impact` / `punch` | amp, dur, color, frames | тряска, вспышка, манга-кадр, зум-удар |
+| `text` | text, pos (top/center/bottom), dur, size, color | моно-титр с печатью по буквам |
+| `vfx` | type + параметры | эффект из списка ниже |
+| любое + `sfx` | sfx, gain | звук: boom, hit, crack, whoosh, riser, hum, drone, rumble, chime, clank, paper, stamp, tick, slash |
+
+## Эффекты (`vfx`)
+
+| type | Главные параметры |
+|---|---|
+| `hollow_purple` | caster, charge, merge, travel, r, big, from, to, targets, length, offset (продолжить в следующем плане) |
+| `energy_orb` | at ([x,y] доли кадра или {who, at}), r, grow, color, layer (back/main/fx) |
+| `domain` | caster, style (void/shrine), expand_at, frozen [...], texts [...] |
+| `black_flash` | at {who, at: hand_r}, targets, size |
+| `impact` | frames |
+| `system` | title, lines (строки или {"text": "Level {}", "count": [1, 2]}), y, w, color |
+| `shadow_rise` | caster, count, rise, spread, scale |
+| `wheel` | who, turns [t...], scale, color |
+| `aura` | caster, targets |
+| `afterimage` | who, count, gap |
+| `speedlines` / `slash` | a, color / count, color |
+
+`at` для эффектов: `[0.5, 0.8]` (доли кадра) или `{"who": "ego", "at": "hand_r|hand_l|hands|head|above|feet|front|core", "dx": 0, "dy": -1.6}` (dx и dy в радиусах головы).
+
+Длинный эффект через несколько планов: в следующем плане повторяешь тот же `vfx` с `"offset": <секунд уже прошло>`.

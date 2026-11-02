@@ -1,0 +1,57 @@
+---
+name: make-video
+description: Make a vertical motivational TikTok in the white stick-figure style (archetype labels, grades, night grind, one hidden anime/film power move) from ONE request. Use when the user asks for a new ролик/видео/video/tiktok in this style, or gives an idea like "эго против таланта с пурпурным".
+---
+
+# make-video: один запрос → готовый ролик
+
+Ты превращаешь одну фразу пользователя в сценарий, рендеришь его и отдаёшь файлы. Пиши пользователю по-русски.
+
+## 1. Разбери запрос
+- Кто герой и кто соперники (архетипы: EGO, TALENT, DISCIPLINE, HARD WORK, FEAR, LAZINESS, FOCUS, DOUBT...).
+  Негативные архетипы (FEAR, LAZINESS, DOUBT, FAILURE, COMFORT) — соперники, не герои.
+- Какая скрытая отсылка: `python -m engine refs` и `docs/ATTRIBUTES.md`. Если пользователь назвал аниме или
+  сцену, которой нет в списке, собери её из существующих эффектов (energy_orb, domain, aura, system...)
+  и опиши, чего не хватает.
+- Шаблон: classroom_rematch (оригинальный формат), duel_power (бой + сила), grind_levelup (система, прокачка),
+  adaptation (колесо).
+
+## 2. Черновик сценария
+```bash
+python -m engine make "<запрос пользователя>" --plan-only          # с Claude API, если есть ключ
+python -m engine make "<запрос пользователя>" --no-llm --plan-only # только правила
+```
+Файл появится в `scenarios/<slug>.json`.
+
+## 3. Доведи сценарий руками (это главное отличие от шаблона)
+Открой JSON и подгони под запрос: формат в `docs/SCENARIO.md`, рабочий эталон — `scenarios/talent_vs_hardwork_purple.json`.
+- Повтори постановку пользователя дословно: где появляется шар, кто в кого стреляет, что происходит после.
+- Тексты: хук (англ. капс, до 34 символов), финальная карточка (1–3 строки, одно слово с `*`), подпись к посту.
+- **Никогда** не пиши названия аниме или фильмов, имена персонажей и названия техник в тексте на экране, подписи и хэштегах.
+- Ровно один план с `"climax": true` (и `climax_at`): это момент удара, его ставят на дроп.
+- Длина 16–25 сек, 6–8 планов, по одной мысли на план.
+
+## 4. Музыка
+- Пользователь дал ссылку на TikTok: `"music": {"source": "tiktok", "url": "<url>"}`. Движок скачает звук,
+  найдёт дроп и подгонит кульминацию.
+- Ссылки нет: оставь `synth` (безопасный процедурный бит) и предложи звук из `python -m engine music radar`.
+
+## 5. Проверь кадры до рендера
+```bash
+python -m engine still scenarios/<slug>.json <секунда> --scale 0.4
+```
+Посмотри 4–6 ключевых моментов (Read на png): читаемость ярлыков, что эффект попадает в персонажей, что нет
+пустых тёмных кадров дольше секунды.
+
+## 6. Рендер
+```bash
+python -m engine render scenarios/<slug>.json            # 1080x1920, около 4 мин на 20 сек
+python -m engine render scenarios/<slug>.json --preview  # половинное разрешение, быстро
+```
+На выходе в `output/<slug>/`: `final.mp4` (с музыкой), `final_sfx_only.mp4` (без музыки, чтобы поставить
+трендовый звук в редакторе TikTok), `cover.png`, `contact_sheet.jpg`, `caption.txt`.
+
+## 7. Отдай результат
+- Отправь `final.mp4`, `cover.png` и текст из `caption.txt`.
+- Если нужна обложка через GPT Image: дай мастер-промпт из `docs/GPT_IMAGE_PROMPTS.md` и подходящий блок сцены.
+- Закоммить сценарий (`scenarios/*.json`). Папка `output/` в git не идёт.

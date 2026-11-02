@@ -1,0 +1,7 @@
+skia-python>=144.0   # rendering (needs libegl1 on Linux: apt-get install -y libegl1)
+numpy>=2.0
+scipy>=1.13
+librosa>=0.10        # beat / drop detection
+yt-dlp>=2026.10.0    # TikTok sounds (radar + fetch)
+requests>=2.31       # TikTok Research API
+anthropic>=2.0       # optional: Claude planner for `make`
