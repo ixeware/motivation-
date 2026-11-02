@@ -132,6 +132,20 @@ pools on the floor, violet mist at their feet, the back rows smaller. Everything
 A dark navy holographic panel with violet border floats at the top: "[ LEVEL UP ]".
 ```
 
+### 2.11 3D-стиль: PROCRASTINATOR vs PLANNER (обложка)
+```text
+SCENE: vertical 9:16, clean 3D render, black void with a black mirror floor (soft blurred reflections only).
+Two white toon stick figures with thick black outlines and big round faceless heads sit at grey office desks
+facing the camera, each under a soft top spotlight. Pixel-font labels above them: "PROCRASTINATOR" (left),
+"PLANNER" (right).
+LEFT: a red tear-off calendar reads "DUE TODAY"; a dark storm cloud rains on him; white calendar pages with
+day numbers swirl around him in a slow paper hurricane and cover his desk; a tall tower of paper coffee cups;
+he holds his head with both hands.
+RIGHT: warm golden light, he sips coffee next to a laptop; a dark board above him glows green with "A+".
+Top text in white pixel font: "YOU BORROWED IT. WITH INTEREST."
+The only colors are the red calendar and the green A+.
+```
+
 ## 3. Небольшой сдвиг стиля (одна строка на выбор)
 
 ```text
