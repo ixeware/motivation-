@@ -438,9 +438,13 @@ class Renderer:
         typing = float(ev.get("type", 0.0 if style == "sub" else 0.35))
         full = ev["text"]
         n = len(full) if typing <= 0 else int(len(full) * min(1.0, lt / typing))
-        lines = full[:n].split("\n")
         accent = ev.get("color", "#ecece9" if style == "sub" else "#f2f2f0")
         size = float(ev.get("size", 30 if style == "sub" else 46))
+        face = gfx.MONO_MED if style == "sub" else gfx.MONO_XB
+        spacing = size * (0.3 if style == "sub" else 0.12)
+        lines = []
+        for part in full[:n].split("\n"):
+            lines += gfx.wrap(part, gfx.font(face, size), W * 0.88, spacing=spacing) if part else [""]
 
         def draw(c):
             for i, ln in enumerate(lines):

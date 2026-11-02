@@ -4,7 +4,7 @@
     "request": "эго против таланта и дисциплины в классе, отсылка на расширение территории",
     "template": "classroom_rematch",
     "reference": "domain_void",
-    "caption": "Иногда гордость — лучшее топливо. Сделай её силой, а не слабостью.",
+    "caption": "Sometimes your pride is the best fuel. Make it a strength, not a weakness.",
     "hashtags": [
       "motivation",
       "mindset",
@@ -357,12 +357,12 @@
       "out": "fade",
       "params": {
         "lines": [
-          "ИНОГДА ГОРДОСТЬ —",
-          "ЛУЧШЕЕ ТОПЛИВО.*"
+          "SOMETIMES PRIDE",
+          "IS THE BEST FUEL.*"
         ],
-        "sub": "СДЕЛАЙ ЕЁ СИЛОЙ, А НЕ СЛАБОСТЬЮ",
+        "sub": "MAKE IT A STRENGTH, NOT A WEAKNESS",
         "accent": "#60a5fa",
-        "size": 92
+        "size": 96
       }
     }
   ]

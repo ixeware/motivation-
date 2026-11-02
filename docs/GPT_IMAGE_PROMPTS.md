@@ -35,7 +35,8 @@ LIGHTING: the world is almost monochrome; color comes only from the cores, windo
 dawn orange), a warm desk lamp if present, and red stamps.
 
 DO NOT: add faces, mouths, eyes (unless asked), hair, clothes, logos, watermarks, brand names, anime characters
-or any extra text besides the labels and grades. Keep it clean and readable on a phone.
+or any extra text besides the labels and grades. All visible text must be in English. Keep it clean and readable
+on a phone.
 ```
 
 ## 2. Блоки сцен (дописать к мастер-промпту)

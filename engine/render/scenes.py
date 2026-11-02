@@ -531,7 +531,10 @@ class Title(Scene):
             gfx.glow_circle(c, W / 2, ly, 10, accent, 0.6 * (lw > 1), spread=5)
             if sub:
                 a = out_cubic(win(t, 0.9 + k * 0.09, 1.4 + k * 0.09))
-                gfx.draw_text(c, sub, W / 2, ly + 90, size=34, face=gfx.MONO, c="#cfcfcb", a=a, spacing=7)
+                sf = gfx.font(gfx.MONO, 34)
+                for i, sl in enumerate(gfx.wrap(sub, sf, W * 0.86, spacing=7)):
+                    gfx.draw_text(c, sl, W / 2, ly + 90 + i * 50, size=34, face=gfx.MONO, c="#cfcfcb", a=a,
+                                  spacing=7)
             if seal:
                 a = win(t, 1.2 + k * 0.09, 1.35 + k * 0.09)
                 sc = 1 + (1 - a) * 0.6

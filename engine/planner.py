@@ -66,8 +66,9 @@ QUOTES = {
                           "Nobody saw the nights. Everyone saw the level."),
         "adaptation": (["EVERY FALL IS", "ONE TURN OF THE WHEEL.*"], "YOU ARE NOT LOSING. YOU ARE ADAPTING",
                        "Every fall is one turn of the wheel. You are not losing, you are adapting."),
-        "towers": (["MOTIVATION IS A SPARK.", "DISCIPLINE IS AN ARMY.*"], "EVERY DAY YOU SHOWED UP STANDS BEHIND YOU",
-                   "Motivation is a spark. Discipline is an army."),
+        "towers": (["MOTIVATION IS A SPARK.", "DISCIPLINE IS AN ARMY.*"], "YOUR DAYS ARE YOUR SOLDIERS",
+                   "Motivation is a spark. Discipline is an army. Every day you showed up anyway will one day "
+                   "stand behind you."),
     },
 }
 
@@ -77,7 +78,7 @@ HASHTAGS = ["motivation", "mindset", "discipline", "selfimprovement", "grind", "
 # ============================================================================ brief
 
 
-def rule_brief(request: str, lang: str = "ru") -> dict:
+def rule_brief(request: str, lang: str = "en") -> dict:
     t = request.lower()
     found: list[tuple[int, str, str]] = []
     for pat, label, core in ARCHETYPES:
@@ -161,7 +162,7 @@ BRIEF_SCHEMA = {
 }
 
 
-def llm_brief(request: str, lang: str = "ru") -> dict:
+def llm_brief(request: str, lang: str = "en") -> dict:
     """Ask Claude for the creative brief (structured JSON output)."""
     import anthropic
 
@@ -689,7 +690,7 @@ def build_towers(b: dict) -> dict:
                   "actors": {"hero": {"x": 0.47, "tower": {"base": 19}, "level": 0.95, "pile": 6}},
                   "events": climax_ev})
     end = _title(b, "#a78bfa", dur=3.4)
-    end["params"]["size"] = 54
+    end["params"]["size"] = 68
     shots.append(end)
     cast = {"r1": {"label": r1, "core": _core(r1, "gold"), "build": "slim"},
             "r2": {"label": r2, "core": _core(r2, "#fb923c"), "build": "slim", "flame": 1.0},
@@ -720,7 +721,7 @@ def _wrap(b: dict, cast: dict, shots: list, ref: dict) -> dict:
     }
 
 
-def plan(request: str, *, use_llm: bool = True, lang: str = "ru") -> dict:
+def plan(request: str, *, use_llm: bool = True, lang: str = "en") -> dict:
     brief = None
     if use_llm:
         try:

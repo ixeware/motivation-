@@ -39,6 +39,7 @@ python -m engine render scenarios/<slug>.json --preview   # быстрый че�
 python -m engine still scenarios/<slug>.json 10.2  # один кадр в png
 ```
 `make` берёт бриф у Claude API, если есть ключ (`ANTHROPIC_API_KEY` или `ant auth login`). Без ключа работает офлайн-планировщик по ключевым словам.
+Запрос можно писать по-русски, **весь текст в видео будет на английском** (ярлыки, субтитры, финальная карточка). Подпись к посту тоже английская.
 
 ### Что получаешь (`output/<slug>/`)
 - `final.mp4`: ролик с музыкой и SFX.

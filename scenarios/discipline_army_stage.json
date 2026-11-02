@@ -2,7 +2,7 @@
   "meta": {
     "slug": "discipline_army_stage",
     "reference": "shadow_rise + system",
-    "caption": "Мотивация — это искра. Дисциплина — это армия. Каждый день, когда ты всё равно пришёл, однажды встанет за твоей спиной.",
+    "caption": "Motivation is a spark. Discipline is an army. Every day you showed up anyway will one day stand behind you.",
     "hashtags": ["motivation", "discipline", "mindset", "consistency", "selfimprovement", "fyp"]
   },
   "style": {
@@ -30,7 +30,7 @@
         "discipline": {"x": 0.8, "tower": {"base": 0}, "level": 0.05}
       },
       "events": [
-        {"t": 0.3, "do": "text", "text": "ОДНА ЦЕЛЬ. ТРИ ПОДХОДА.", "dur": 3.6},
+        {"t": 0.3, "do": "text", "text": "ONE GOAL. THREE WAYS.", "dur": 3.6},
         {"t": 0.3, "do": "stack", "who": "talent", "until": 4.2, "rate": 2.3},
         {"t": 0.3, "do": "stack", "who": "motivation", "until": 4.2, "rate": 2.4},
         {"t": 0.3, "do": "stack", "who": "discipline", "until": 4.2, "rate": 1.0},
@@ -47,7 +47,7 @@
       },
       "events": [
         {"t": 0.0, "do": "stack", "who": "talent", "until": 0.95, "rate": 2.3},
-        {"t": 0.3, "do": "text", "text": "ТАЛАНТ РЕШИЛ,\nЧТО ЭТОГО ХВАТИТ.", "dur": 2.8},
+        {"t": 0.3, "do": "text", "text": "TALENT DECIDED\nIT WAS ENOUGH.", "dur": 2.8},
         {"t": 1.0, "do": "pose", "who": "talent", "pose": "squat_rest", "dur": 0.45, "ease": "out_cubic"},
         {"t": 1.4, "do": "sparkle", "who": "talent", "to": 1.0, "dur": 0.15, "hold": 1.1},
         {"t": 2.2, "do": "dim", "who": "talent", "to": 0.85, "dur": 0.9},
@@ -63,7 +63,7 @@
       },
       "events": [
         {"t": 0.0, "do": "stack", "who": "motivation", "until": 1.45, "rate": 2.6},
-        {"t": 0.3, "do": "text", "text": "МОТИВАЦИЯ ГОРИТ ЯРКО.\nНО НЕДОЛГО.", "dur": 3.0},
+        {"t": 0.3, "do": "text", "text": "MOTIVATION BURNS BRIGHT.\nBUT NOT FOR LONG.", "dur": 3.0},
         {"t": 0.9, "do": "flame", "who": "motivation", "to": 0.0, "dur": 1.5, "ease": "inout"},
         {"t": 1.5, "do": "pose", "who": "motivation", "pose": "squat_despair", "dur": 0.4, "ease": "out_cubic"},
         {"t": 2.3, "do": "pose", "who": "motivation", "pose": "squat_slump", "dur": 0.6},
@@ -80,7 +80,7 @@
       },
       "events": [
         {"t": 0.0, "do": "stack", "who": "discipline", "until": 3.4, "rate": 1.2},
-        {"t": 0.3, "do": "text", "text": "ДИСЦИПЛИНА\nПРОСТО ПРОДОЛЖАЕТ.", "dur": 3.0},
+        {"t": 0.3, "do": "text", "text": "DISCIPLINE\nJUST KEEPS GOING.", "dur": 3.0},
         {"t": 0.2, "do": "level", "who": "discipline", "to": 0.6, "dur": 3.0, "ease": "linear"}
       ]
     },
@@ -95,7 +95,7 @@
       },
       "events": [
         {"t": 0.0, "do": "stack", "who": "discipline", "until": 2.8, "rate": 3.0},
-        {"t": 0.2, "do": "text", "text": "ДЕНЬ ЗА ДНЁМ.", "dur": 2.4},
+        {"t": 0.2, "do": "text", "text": "DAY AFTER DAY.", "dur": 2.4},
         {"t": 0.0, "do": "level", "who": "discipline", "to": 0.95, "dur": 2.8, "ease": "linear"},
         {"t": 1.4, "do": "spot", "who": "talent", "to": 0.1, "dur": 1.0},
         {"t": 1.4, "do": "spot", "who": "motivation", "to": 0.08, "dur": 1.0}
@@ -126,8 +126,8 @@
     },
     {
       "scene": "title", "dur": 3.4, "out": "fade",
-      "params": {"lines": ["МОТИВАЦИЯ — ЭТО ИСКРА.", "ДИСЦИПЛИНА — ЭТО АРМИЯ.*"],
-                 "sub": "КАЖДЫЙ ДЕНЬ ВСТАЁТ ЗА ТВОЕЙ СПИНОЙ", "size": 54, "accent": "#a78bfa"}
+      "params": {"lines": ["MOTIVATION IS A SPARK.", "DISCIPLINE IS AN ARMY.*"],
+                 "sub": "YOUR DAYS ARE YOUR SOLDIERS", "size": 68, "accent": "#a78bfa"}
     }
   ]
 }

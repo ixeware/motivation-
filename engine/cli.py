@@ -116,7 +116,7 @@ def main(argv=None):
     m.add_argument("--plan-only", action="store_true", help="write the scenario, do not render")
     m.add_argument("--preview", action="store_true")
     m.add_argument("--music-url", help="TikTok video URL whose sound to use")
-    m.add_argument("--lang", default="ru", help="language of the end card / caption (ru|en)")
+    m.add_argument("--lang", default="en", help="language of ALL on-screen text and the caption (default: en)")
     m.set_defaults(fn=_cmd_make)
 
     mu = sub.add_parser("music")
