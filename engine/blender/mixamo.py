@@ -39,6 +39,14 @@ LIBRARY = {
     "thumbs": ("Sitting Thumbs Up|Giving Thumbs Up", "sitting_thumbs_up_giving_thumbs_up_while_sitting"),
     "writing": ("Writing|Male Writing While Seated", "writing_male_writing_while_seated"),
     "drink": ("Sitting Drinking|Canned Beverage", "sitting_drinking_having_a_seat_and_drinking_a_canned_beverag"),
+    "jump_hang": ("Jump To Hang|Jump Grab To Free Hanging", "jump_to_hang_jump_grab_to_free_hanging"),
+    "hang": ("Hanging Idle|Gently Swaying", "hanging_idle_hanging_by_hands_gently_swaying"),
+    "hang2": ("Hanging|Hanging Idle", "hanging_hanging_idle"),
+    "hard_land": ("Hard Landing|Mid-Air Falling Hard Landing -blend", "hard_landing_mid_air_falling_to_a_hard_landing"),
+    "floor_sit": ("Sitting Idle|Sitting On The Floor", "sitting_idle_sitting_on_the_floor"),
+    "kneel_one": ("Kneeling|On One Knee", "kneeling_kneeling_on_one_knee_idle"),
+    "kneel": ("Kneeling Idle|Kneeling Idle", "kneeling_idle_kneeling_idle"),
+    "defeated": ("Defeated|Frustration", "defeated_showing_frustration_after_a_loss"),
 }
 
 
@@ -94,9 +102,12 @@ class Client:
         res = self.search(name)
         exact = [r for r in res if r.get("name", "").lower() == name.lower()]
         pool = exact or res
-        if desc:
+        if desc:   # words must appear in the description, "-word" must not
             words = desc.split()
-            pool = [r for r in pool if all(w in (r.get("description") or "").lower() for w in words)] or pool
+            inc = [w for w in words if not w.startswith("-")]
+            exc = [w[1:] for w in words if w.startswith("-")]
+            d = lambda r: (r.get("description") or "").lower()
+            pool = [r for r in pool if all(w in d(r) for w in inc) and not any(w in d(r) for w in exc)] or pool
         if not pool:
             raise MixamoError(f"nothing on Mixamo matches {spec!r}")
         return pool[0]

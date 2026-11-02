@@ -368,3 +368,129 @@ def lightning(name, start, end, seed=7, segs=9, jag=0.12, radius=0.016, color=(0
     bpy.context.scene.collection.objects.link(lo)
     lo.location = (start + end) / 2
     return {"bolts": objs, "flash": lo}
+
+
+# ----------------------------------------------------------------------------- gym / stage
+
+def pullup_bar(name, z=2.30, x0=-1.85, x1=1.85, radius=0.024, points=61):
+    """Long horizontal bar on two posts. The bar is a poly curve so it can bend per frame (set_bend)."""
+    m_bar = bpy.data.materials.get("bar_metal") or kit.dark("bar_metal", (0.62, 0.62, 0.64, 1), 0.28, 0.12)
+    m_post = _mat("bar_post", (0.16, 0.16, 0.17, 1), 0.5, 0.05)
+    cu = bpy.data.curves.new(name, "CURVE")
+    cu.dimensions = "3D"
+    cu.bevel_depth = radius
+    cu.bevel_resolution = 3
+    sp = cu.splines.new("POLY")
+    sp.points.add(points - 1)
+    xs = [x0 + (x1 - x0) * i / (points - 1) for i in range(points)]
+    for p, x in zip(sp.points, xs):
+        p.co = (x, 0, z, 1)
+    ob = kit._link(bpy.data.objects.new(name, cu))
+    cu.materials.append(m_bar)
+    posts = []
+    for i, x in enumerate((x0 - 0.04, x1 + 0.04)):
+        bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=0.035, depth=z + 0.06, location=(x, 0, (z + 0.06) / 2))
+        po = bpy.context.active_object
+        po.name = f"{name}_post{i}"
+        kit.set_mat(po, m_post)
+        posts.append(po)
+
+    def set_bend(dips):
+        """dips: [(x, depth, width)] -> bar sags around each x (depth in m, gaussian width in m)."""
+        for p, x in zip(sp.points, xs):
+            dz = sum(d * math.exp(-((x - cx) / w) ** 2) for cx, d, w in dips)
+            p.co = (x, 0, z - dz, 1)
+
+    return {"bar": ob, "posts": posts, "set_bend": set_bend, "z": z}
+
+
+def light_beam(name, top, bottom_z=0.25, r_top=0.06, r_bottom=0.75, strength=0.35, color=(1.0, 0.97, 0.9)):
+    """Fake volumetric spotlight shaft: open cone, additive emission fading to the edges and the floor."""
+    top = Vector(top)
+    depth = top.z - bottom_z
+    bpy.ops.mesh.primitive_cone_add(vertices=48, radius1=r_bottom, radius2=r_top, depth=depth, end_fill_type="NOTHING",
+                                    location=(top.x, top.y, bottom_z + depth / 2))
+    ob = bpy.context.active_object
+    ob.name = name
+    m, nt, out = kit._mat(f"beam_{name}")
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(tc.outputs["Object"], sep.inputs[0])
+    mr = nt.nodes.new("ShaderNodeMapRange")          # brighter near the lamp, gone at the floor
+    mr.inputs["From Min"].default_value = -depth / 2
+    mr.inputs["From Max"].default_value = depth / 2
+    mr.inputs["To Min"].default_value = 0.0
+    mr.inputs["To Max"].default_value = 1.0
+    nt.links.new(sep.outputs["Z"], mr.inputs["Value"])
+    lw = nt.nodes.new("ShaderNodeLayerWeight")       # soft edges: facing the camera = dense, silhouette = thin
+    lw.inputs["Blend"].default_value = 0.5
+    inv = nt.nodes.new("ShaderNodeMath")
+    inv.operation = "SUBTRACT"
+    inv.inputs[0].default_value = 1.0
+    nt.links.new(lw.outputs["Facing"], inv.inputs[1])
+    mul = nt.nodes.new("ShaderNodeMath")
+    mul.operation = "MULTIPLY"
+    nt.links.new(mr.outputs["Result"], mul.inputs[0])
+    nt.links.new(inv.outputs[0], mul.inputs[1])
+    pw = nt.nodes.new("ShaderNodeMath")
+    pw.operation = "POWER"
+    pw.inputs[1].default_value = 1.6
+    nt.links.new(mul.outputs[0], pw.inputs[0])
+    gain = nt.nodes.new("ShaderNodeMath")
+    gain.operation = "MULTIPLY"
+    gain.inputs[1].default_value = strength
+    gain.name = "gain"
+    nt.links.new(pw.outputs[0], gain.inputs[0])
+    em = nt.nodes.new("ShaderNodeEmission")
+    em.inputs["Color"].default_value = (*color, 1)
+    nt.links.new(gain.outputs[0], em.inputs["Strength"])
+    tr = nt.nodes.new("ShaderNodeBsdfTransparent")
+    add = nt.nodes.new("ShaderNodeAddShader")
+    nt.links.new(tr.outputs[0], add.inputs[0])
+    nt.links.new(em.outputs[0], add.inputs[1])
+    nt.links.new(add.outputs[0], out.inputs["Surface"])
+    kit.set_mat(ob, m)
+    ob.visible_shadow = False
+    return {"obj": ob, "gain": nt.nodes["gain"], "strength": strength}
+
+
+def bolt_pool(name, n=8, pts=7, core=0.006, sheath=0.018, color=(1.0, 0.12, 0.08), strength=7.0):
+    """Reusable 'black lightning with a red rim' strokes: black core + red edge sheath, points set per frame."""
+    m_core = bpy.data.materials.get("bolt_core") or kit.emission("bolt_core", (0, 0, 0), 0.0)
+    m_sh, nt, out = kit._mat(f"{name}_sheath")
+    lw = nt.nodes.new("ShaderNodeLayerWeight")
+    lw.inputs["Blend"].default_value = 0.35
+    em = nt.nodes.new("ShaderNodeEmission")
+    em.inputs["Color"].default_value = (*color, 1)
+    em.inputs["Strength"].default_value = strength
+    tr = nt.nodes.new("ShaderNodeBsdfTransparent")
+    mix = nt.nodes.new("ShaderNodeMixShader")
+    nt.links.new(lw.outputs["Facing"], mix.inputs["Fac"])
+    nt.links.new(tr.outputs[0], mix.inputs[1])
+    nt.links.new(em.outputs[0], mix.inputs[2])
+    nt.links.new(mix.outputs[0], out.inputs["Surface"])
+    pool = []
+    for i in range(n):
+        pair = []
+        for kind, rad, mat in (("core", core, m_core), ("sheath", sheath, m_sh)):
+            cu = bpy.data.curves.new(f"{name}_{i}_{kind}", "CURVE")
+            cu.dimensions = "3D"
+            cu.bevel_depth = rad
+            cu.bevel_resolution = 1
+            sp = cu.splines.new("POLY")
+            sp.points.add(pts - 1)
+            ob = kit._link(bpy.data.objects.new(f"{name}_{i}_{kind}", cu))
+            cu.materials.append(mat)
+            ob.visible_shadow = False
+            ob.hide_render = True
+            pair.append((ob, sp))
+        pool.append(pair)
+
+    def set_bolt(i, points, visible=True):
+        for ob, sp in pool[i]:
+            ob.hide_render = not visible
+            if visible:
+                for p, co in zip(sp.points, points):
+                    p.co = (*co, 1)
+
+    return {"pool": pool, "set": set_bolt, "n": n, "pts": pts}

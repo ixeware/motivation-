@@ -238,10 +238,66 @@ def thunder():
     return _stereo(_norm(crack_ + roll + boom_, 0.9), 0.7)
 
 
+def switch():
+    """Big stage light switching on: hard click + low thunk."""
+    dur = 0.5
+    t = _t(dur)
+    click = _hp(_noise(dur, 51), 2500) * np.exp(-t * 90)
+    thunk = np.sin(2 * np.pi * 85 * t) * np.exp(-t * 14) * 0.9
+    hum_ = np.sin(2 * np.pi * 120 * t) * np.exp(-t * 6) * 0.12
+    return _stereo(_norm(click + thunk + hum_, 0.75), 0.3)
+
+
+def creak():
+    """Metal bar creaking under load."""
+    dur = 0.7
+    t = _t(dur)
+    f = 180 + 60 * np.sin(2 * np.pi * 1.3 * t) + 25 * np.sin(2 * np.pi * 7 * t)
+    x = np.sign(np.sin(2 * np.pi * np.cumsum(f) / SR)) * 0.3
+    x = _bp(x + _noise(dur, 52) * 0.15, 300, 2500) * np.sin(np.pi * t / dur) ** 2
+    return _stereo(_norm(x, 0.35), 0.4)
+
+
+def thud():
+    """Body landing on the floor."""
+    dur = 0.6
+    t = _t(dur)
+    x = np.sin(2 * np.pi * 55 * t) * np.exp(-t * 11) + _lp(_noise(dur, 53), 700) * np.exp(-t * 25) * 0.7
+    return _stereo(_norm(x, 0.85), 0.2)
+
+
+def heart():
+    """Two heartbeat thumps (lub-dub)."""
+    dur = 0.9
+    t = _t(dur)
+    x = np.zeros_like(t)
+    for d, a in ((0.0, 1.0), (0.22, 0.7)):
+        tt = np.maximum(0, t - d)
+        x += a * np.sin(2 * np.pi * 48 * tt) * np.exp(-tt * 16) * (t >= d)
+    return _stereo(_norm(_lp(x, 200), 0.8), 0.0)
+
+
+def zap():
+    """Electric crackle (lightning aura)."""
+    dur = 0.6
+    n = int(SR * dur)
+    rng = np.random.default_rng(54)
+    x = np.zeros(n)
+    i = 0
+    while i < n - 400:
+        L = rng.integers(60, 400)
+        x[i:i + L] += rng.normal(0, 1, L) * rng.uniform(0.3, 1.0)
+        i += L + rng.integers(0, 900)
+    x = _hp(x, 1800) + _bp(_noise(dur, 55), 4000, 9000) * 0.15
+    env = np.exp(-np.arange(n) / (SR * 0.35))
+    return _stereo(_norm(x * env, 0.5), 1.0)
+
+
 SFX = {
     "boom": boom, "hit": hit, "crack": crack, "whoosh": whoosh, "riser": riser, "hum": hum,
     "drone": drone, "rumble": rumble, "chime": chime, "clank": clank, "paper": paper,
     "stamp": stamp, "tick": tick, "slash": slash, "rain": rain, "keys": keys, "thunder": thunder,
+    "switch": switch, "creak": creak, "thud": thud, "heart": heart, "zap": zap,
 }
 
 # how much each cue ducks the music (0..1)

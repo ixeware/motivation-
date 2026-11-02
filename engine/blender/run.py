@@ -35,8 +35,10 @@ def run(name, *, preview=False, stills=None, step=1, f_from=None, f_to=None, sam
                 continue
             film.sc.frame_set(f)
             film.update(f)
-            if hasattr(film, "glows"):
-                (frames_dir / f"f_{f:04d}.json").write_text(json.dumps(film.glows(f)))
+            data = {"glows": film.glows(f) if hasattr(film, "glows") else []}
+            if hasattr(film, "overlay"):
+                data["ops"] = film.overlay(f)
+            (frames_dir / f"f_{f:04d}.json").write_text(json.dumps(data))
             film.sc.render.filepath = str(dst)
             bpy.ops.render.render(write_still=True)
             done += 1

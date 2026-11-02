@@ -105,16 +105,23 @@ def grain(img: Image.Image, sigma=3.0, seed=0) -> Image.Image:
 def compose(img, f, frames_dir, ops_fn, impacts=None, scale=1.0, bloom_strength=0.55):
     """Glows + bloom + text, or for an impact frame: text first, then the whole frame inverted."""
     kind = (impacts or {}).get(f)
-    if kind == "invert":
-        return impact(draw_text(img, ops_fn(f), scale), kind)
+    glows, ops = [], list(ops_fn(f))
     gj = Path(frames_dir) / f"f_{f:04d}.json"
     if gj.exists():
         import json
-        img = add_glows(img, json.loads(gj.read_text()))
+        data = json.loads(gj.read_text())
+        if isinstance(data, list):          # older films: glows only
+            glows = data
+        else:
+            glows = data.get("glows", [])
+            ops += [tuple(o) for o in data.get("ops", [])]
+    if kind == "invert":
+        return impact(draw_text(img, ops, scale), kind)
+    img = add_glows(img, glows)
     img = bloom(img, strength=bloom_strength)
     if kind:
         img = impact(img, kind)
-    return draw_text(img, ops_fn(f), scale)
+    return draw_text(img, ops, scale)
 
 
 def finish(frames_dir, out_mp4, *, fps, frames, ops_fn, impacts=None, audio=None, size=(1080, 1920), crf=18,

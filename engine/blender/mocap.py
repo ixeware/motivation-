@@ -152,3 +152,83 @@ def attach(obj, arm, bone, loc=(0, 0, 0), rot=(0, 0, 0)):
     head = arm.matrix_world @ arm.pose.bones[kit.MIX + bone].head
     obj.matrix_world = Matrix.Translation(head + Vector(loc)) @ Euler(rot).to_matrix().to_4x4()
     return obj
+
+
+def recenter(clip: str, frame: float, target_xy=(0.0, 0.0), bone: str = "Hips"):
+    """Shift a clip's root (Hips) location keys so that at `frame` the hips stand at target_xy (z kept).
+
+    Removes a clip's walk-in / root drift (e.g. a hard landing that starts a metre away). Positions are
+    for a character placed at the origin. The action is shared by every character: call once per clip.
+    """
+    act = action(clip)
+    arm = _import(clip)
+    ad = arm.animation_data
+    ad.action = act
+    if getattr(act, "slots", None):
+        ad.action_slot = act.slots[0]
+    bpy.context.scene.frame_set(int(frame))
+    pb = arm.pose.bones[kit.MIX + bone]
+    head = arm.matrix_world @ pb.head
+    delta_w = Vector((target_xy[0] - head.x, target_xy[1] - head.y, 0.0))
+    d = (arm.matrix_world.to_3x3() @ pb.bone.matrix_local.to_3x3()).inverted() @ delta_w
+    path = f'pose.bones["{kit.MIX + bone}"].location'
+    for fc in kit._fcurves(act):
+        if fc.data_path == path:
+            for kp in fc.keyframe_points:
+                kp.co.y += d[fc.array_index]
+                kp.handle_left.y += d[fc.array_index]
+                kp.handle_right.y += d[fc.array_index]
+            fc.update()
+    own = [a for a in bpy.data.actions if a is not act and a.users == 0]
+    data = arm.data
+    bpy.data.objects.remove(arm, do_unlink=True)
+    bpy.data.armatures.remove(data)
+    for a in own:            # the duplicate action that came with this import
+        bpy.data.actions.remove(a)
+    return d
+
+
+def ik_arm(arm, side: str, target, pole, influence=0.0, calibrate_frame=None):
+    """IK on top of a clip (chain: forearm + upper arm), influence animated by the caller."""
+    pb = arm.pose.bones[kit.MIX + f"{side}ForeArm"]
+    c = pb.constraints.new("IK")
+    c.name = "IK"
+    c.target, c.pole_target, c.chain_count, c.use_tail = target, pole, 2, True
+    if calibrate_frame is not None:
+        sc = bpy.context.scene
+
+        def dist(a):
+            c.pole_angle = math.radians(a)
+            c.influence = 1.0
+            arm.update_tag()
+            sc.frame_set(calibrate_frame)
+            j = arm.matrix_world @ arm.pose.bones[kit.MIX + f"{side}ForeArm"].head
+            return (j - pole.matrix_world.translation).length
+
+        best = min(range(-180, 180, 30), key=dist)
+        best = min((best + k for k in range(-15, 16, 3)), key=dist)
+        c.pole_angle = math.radians(best)
+    c.influence = influence
+    return c
+
+
+def calibrate_pole(arm, side: str, frame: int):
+    """Choose the IK pole angle (bone roll dependent) so the elbow really points at the pole at `frame`."""
+    c = arm.pose.bones[kit.MIX + f"{side}ForeArm"].constraints["IK"]
+    keep = c.influence
+    sc = bpy.context.scene
+    pole = c.pole_target
+
+    def dist(a):
+        c.pole_angle = math.radians(a)
+        c.influence = 1.0
+        arm.update_tag()
+        sc.frame_set(frame)
+        j = arm.matrix_world @ arm.pose.bones[kit.MIX + f"{side}ForeArm"].head
+        return (j - pole.matrix_world.translation).length
+
+    best = min(range(-180, 180, 30), key=dist)
+    best = min((best + k for k in range(-15, 16, 3)), key=dist)
+    c.pole_angle = math.radians(best)
+    c.influence = keep
+    return best
