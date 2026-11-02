@@ -67,6 +67,15 @@ class ActorState:
     glitch: float = 0.0
     show_label: bool = True
     joints: Any = None
+    label_pos: str = "head"       # head | floor
+    floor: float | None = None
+    spot: float = 0.0             # this actor's spotlight intensity (stage)
+    dim: float = 0.0
+    tower: int = 0                # blocks in this actor's tower (stage)
+    tower_side: int = 1
+    tower_base: int = 0
+    carrying: bool = False        # holding a block right now
+    sparkle: float = 0.0
     extra: dict = field(default_factory=dict)
 
 
@@ -92,6 +101,10 @@ class Actor:
             "level": Track(float(spec["level"]) if spec.get("level") is not None else -1.0),
             "glitch": Track(0.0),
             "tint": Track(float(spec.get("tint", 0.0))),
+            "dim": Track(float(spec.get("dim", 0.0))),
+            "flame": Track(float(spec.get("flame", cast.get("flame", 0.0)))),
+            "spot": Track(float(spec.get("spot", base.get("spot", 1.0)))),
+            "sparkle": Track(float(spec.get("sparkle", 0.0))),
         }
         self.facing = int(spec.get("facing", base.get("facing", 1)))
         self.flips: list[tuple[float, int]] = []
@@ -106,6 +119,11 @@ class Actor:
         self.mods = dict(spec.get("mods", {}))
         self.mod_events: list[tuple[float, dict]] = []
         self.show_label = spec.get("label", True) is not False
+        tw = spec.get("tower") or {}
+        self.tower_base = int(tw.get("base", 0)) if isinstance(tw, dict) else int(tw)
+        self.tower_side = int(tw.get("side", 1)) if isinstance(tw, dict) else 1
+        self.stacks: list[tuple[float, float, float]] = []   # (t0, t1, rate)
+        self.build = spec.get("build", cast.get("build", base.get("build", "chunky")))
 
     # --- event application -------------------------------------------------
     def apply(self, ev: dict):
@@ -161,9 +179,37 @@ class Actor:
             self.flips.append((t, int(ev.get("facing", -self.facing))))
         elif do == "mods":
             self.mod_events.append((t, ev.get("mods", {})))
+        elif do == "dim":
+            self.tracks["dim"].add(t, float(ev.get("to", 1.0)), float(ev.get("dur", 0.8)), ez)
+        elif do == "flame":
+            self.tracks["flame"].add(t, float(ev.get("to", 0.0)), float(ev.get("dur", 1.0)), ez)
+        elif do == "spot":
+            self.tracks["spot"].add(t, float(ev.get("to", 0.0)), float(ev.get("dur", 0.6)), ez)
+        elif do == "sparkle":
+            self.tracks["sparkle"].add(t, float(ev.get("to", 1.0)), float(ev.get("dur", 0.2)), ez)
+            if ev.get("hold"):
+                self.tracks["sparkle"].add(t + float(ev["hold"]), 0.0, 0.3, ez)
+        elif do == "stack":
+            until = float(ev.get("until", t + float(ev.get("dur", 2.0))))
+            self.stacks.append((t, until, float(ev.get("rate", 1.0))))
+            self.stacks.sort()
 
     def base_x01(self) -> float:
         return float(self.base.get("x01", 0.5))
+
+    def tower_count(self, t: float) -> int:
+        n = self.tower_base
+        for t0, t1, rate in self.stacks:
+            if t >= t0:
+                n += int((min(t, t1) - t0) * rate + 0.2)
+        return n
+
+    def stacking(self, t: float):
+        """(phase, rate) if a stacking cycle is running at t, else None."""
+        for t0, t1, rate in self.stacks:
+            if t0 <= t < t1:
+                return ((t - t0) * rate + 0.1) % 1.0, rate
+        return None
 
     # --- state -------------------------------------------------------------
     def state(self, t: float, W: float, beat: float = 0.0) -> ActorState:
@@ -173,6 +219,16 @@ class Actor:
         for te, m in self.mod_events:
             if t >= te:
                 mods.update(m)
+        carrying = False
+        st_ph = self.stacking(t)
+        if st_ph is not None:
+            # blend in/out of the stacking cycle over 0.15 s so it starts and stops smoothly
+            cyc, carrying = rig.stack_pose(st_ph[0], self.tower_side)
+            k = 1.0
+            for t0, t1, _ in self.stacks:
+                if t0 <= t < t1:
+                    k = min(1.0, (t - t0) / 0.15, (t1 - t) / 0.15)
+            pose = rig.blend(pose, cyc, k) if k < 1.0 else cyc
         pose = rig.apply_mods(pose, mods, t)
         facing = self.facing
         for te, f in self.flips:
@@ -198,6 +254,12 @@ class Actor:
         if mods.get("float"):
             bob = math.sin(t * 2.2) * 0.12 * self.base["s"] * mods["float"]
         s = self.base["s"] * tr["s"]
+        floor = self.base.get("floor")
+        if floor is not None and not self.spec.get("no_ground"):
+            # stay on the floor whatever the pose (squats, kicks, walking bob)
+            y0 = floor - rig.ground_offset(pose, s, facing, self.build)
+        else:
+            y0 = self.base["y"]
         core_c = self.cast.get("core")
         look = rig.Look(
             color=self.cast.get("color", "figure"),
@@ -212,11 +274,15 @@ class Actor:
             tint=self.cast.get("tint_c", "violet"),
             tint_amt=tr["tint"],
             glow=self.base.get("glow", 0.22),
+            build=self.build,
+            dim=tr["dim"],
+            flame=tr["flame"],
+            flame_c=self.cast.get("flame_c", "#ff4b2b"),
         )
         return ActorState(
             id=self.id,
             x=self.base["x"] + tr["x"] * W,
-            y=self.base["y"] + tr["y"] + tr["yoff"] + bob,
+            y=y0 + tr["y"] + tr["yoff"] + bob,
             s=s,
             facing=facing,
             pose=pose,
@@ -232,6 +298,15 @@ class Actor:
             zzz=zz,
             glitch=tr["glitch"],
             show_label=self.show_label,
+            label_pos=self.spec.get("label_pos", self.cast.get("label_pos", self.base.get("label_pos", "head"))),
+            floor=floor,
+            spot=tr["spot"],
+            dim=tr["dim"],
+            tower=self.tower_count(t),
+            tower_side=self.tower_side,
+            tower_base=self.tower_base,
+            carrying=carrying,
+            sparkle=tr["sparkle"],
         )
 
 

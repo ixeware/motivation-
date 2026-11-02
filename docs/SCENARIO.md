@@ -41,12 +41,14 @@
 | `board` | сбоку, пишет на доске | `lines` [...], `reveal_from`, `reveal_until` |
 | `arena` | сбоку, тёмная сцена для боя | `spot`, `spot_c`, `tint`, `horizon`, `floor`, `shadows` |
 | `void` | фронтально, пустая сцена (раскрытие героя, территория) | как у `arena` |
+| `stage` | фронтально, чёрная сцена: глянцевый пол, прожектор над каждым, башни из блоков, ярлыки на полу (уровень новых роликов референса) | `s` (размер фигур), `floor`, `reflect` (0..1), `haze`, `spot`, `spot_w`, `label_pos`, `block_w`, `block_h`, `spots` [{x, w, a}] |
 | `title` | финальная карточка | `lines` (слово с `*` красится в акцент), `sub`, `accent`, `size`, `seal` |
 
 ## Позы (`python -m engine poses`)
 
-Фронтальные: `sit`, `sit_relaxed`, `sleep`, `head_in_hands`, `hands_on_head`, `arms_up`, `fist_up`, `stand`, `cast`,
-`cast_sit`, `heaven`, `hands_out`, `hands_together`, `fire_right`, `fire_left`, `shrug`, `slumped`.
+Фронтальные: `sit`, `sit_relaxed`, `sleep`, `head_in_hands`, `hands_on_head`, `arms_up`, `fist_up`, `stand`, `stand_proud`,
+`cast`, `cast_sit`, `heaven`, `hands_out`, `hands_together`, `fire_right`, `fire_left`, `shrug`, `slumped`,
+`pick_l`, `pick_r`, `place_r`, `place_l`, `carry`, `squat`, `squat_rest`, `squat_despair`, `squat_slump`, `kneel_front`.
 Боковые: `sit_side`, `write`, `think_side`, `stand_side`, `board_write`, `point`, `stance`, `punch`, `punch_back`,
 `guard`, `hit`, `kick`, `cast_side`, `float_side`, `victory_side`, `kneel_side`.
 
@@ -62,6 +64,11 @@
 | `glitch` | who, dur | глитч ярлыка |
 | `label` | who, text | сменить ярлык |
 | `zzz` | who, on | «Z z z» |
+| `stack` | who, until, rate (блоков в секунду) | цикл «взял блок → положил на башню», башня растёт (нужен `tower` у актёра) |
+| `dim` | who, to, dur | персонаж сдался: серый, без свечения, тусклый ярлык |
+| `flame` | who, to, dur | огонь на голове (1 горит, 0 погас и дымится) |
+| `spot` | who, to, dur | яркость его прожектора на `stage` |
+| `sparkle` | who, to, dur, hold | искорка ✦ у головы |
 | `fade` / `hide` / `show` | who, to, dur | прозрачность |
 | `face` | who, facing | развернуть |
 | `shake` / `flash` / `impact` / `punch` | amp, dur, color, frames | тряска, вспышка, манга-кадр, зум-удар |
@@ -84,7 +91,21 @@
 | `aura` | caster, targets |
 | `afterimage` | who, count, gap |
 | `speedlines` / `slash` | a, color / count, color |
+| `light_pillar` | at (например `{"who": "hero", "at": "tower"}`), width, color, floor |
+| `shadow_rise` + `rows` | ряды за героем: `[[масштаб, сколько, отступ_назад, ширина], ...]` |
 
-`at` для эффектов: `[0.5, 0.8]` (доли кадра) или `{"who": "ego", "at": "hand_r|hand_l|hands|head|above|feet|front|core", "dx": 0, "dy": -1.6}` (dx и dy в радиусах головы).
+`at` для эффектов: `[0.5, 0.8]` (доли кадра) или `{"who": "ego", "at": "hand_r|hand_l|hands|head|above|feet|front|core|tower", "dx": 0, "dy": -1.6}` (dx и dy в радиусах головы).
+
+## Поля актёра в плане
+
+`pose`, `x`, `s`, `facing`, `level`, `level_text`, `sheet`, `band`, `eyes`, `marks`, `core`, `zzz`, `mods`,
+`build` (`chunky` | `slim`), `label_pos` (`head` | `floor`), `tower` {`base`, `side`}, `pile` (блоков в запасе),
+`dim`, `flame`, `spot`, `sparkle`, `layer`, `alpha`.
+
+## Качество
+
+- `style.fps: 60` для финала, как у референса. Рендер примерно в 2 раза дольше.
+- `params.reflect` у сцены: сила отражения в полу (0 выключает).
+- `text` по умолчанию в стиле `sub` (тонкий моно-субтитр сверху), для крика — `"style": "bold"`. Перенос строки — `\n`.
 
 Длинный эффект через несколько планов: в следующем плане повторяешь тот же `vfx` с `"offset": <секунд уже прошло>`.

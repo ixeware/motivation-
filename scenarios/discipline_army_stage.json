@@ -1,0 +1,133 @@
+{
+  "meta": {
+    "slug": "discipline_army_stage",
+    "reference": "shadow_rise + system",
+    "caption": "Мотивация — это искра. Дисциплина — это армия. Каждый день, когда ты всё равно пришёл, однажды встанет за твоей спиной.",
+    "hashtags": ["motivation", "discipline", "mindset", "consistency", "selfimprovement", "fyp"]
+  },
+  "style": {
+    "fps": 60,
+    "accent": "#a78bfa",
+    "seal": "M",
+    "watermark": "@YOURHANDLE",
+    "grade": {"saturation": 0.9, "contrast": 1.08, "bloom": 0.5, "vignette": 0.55, "grain": 0.035}
+  },
+  "music": {"source": "synth", "bpm": 100, "snap_cuts": true,
+            "suggest": "dark phonk / slowed cinematic with a hard drop (radar: Nightcrawler, ZOOMTEKK, NEMESIS)"},
+  "cast": {
+    "talent": {"label": "TALENT", "core": "gold", "build": "slim"},
+    "motivation": {"label": "MOTIVATION", "core": "#fb923c", "build": "slim", "flame": 1.0},
+    "discipline": {"label": "DISCIPLINE", "core": "cyan", "build": "slim", "eyes": "#a78bfa"}
+  },
+  "shots": [
+    {
+      "scene": "stage", "dur": 4.2,
+      "params": {"s": 30},
+      "camera": {"from": {"zoom": 1.0, "y": 50}, "to": {"zoom": 1.07, "y": 10}},
+      "actors": {
+        "talent": {"x": 0.2, "tower": {"base": 0}},
+        "motivation": {"x": 0.5, "tower": {"base": 0}},
+        "discipline": {"x": 0.8, "tower": {"base": 0}, "level": 0.05}
+      },
+      "events": [
+        {"t": 0.3, "do": "text", "text": "ОДНА ЦЕЛЬ. ТРИ ПОДХОДА.", "dur": 3.6},
+        {"t": 0.3, "do": "stack", "who": "talent", "until": 4.2, "rate": 2.3},
+        {"t": 0.3, "do": "stack", "who": "motivation", "until": 4.2, "rate": 2.4},
+        {"t": 0.3, "do": "stack", "who": "discipline", "until": 4.2, "rate": 1.0},
+        {"t": 0.3, "do": "level", "who": "discipline", "to": 0.2, "dur": 3.8, "ease": "linear"},
+        {"t": 1.2, "do": "sparkle", "who": "talent", "to": 1.0, "dur": 0.2, "hold": 1.4}
+      ]
+    },
+    {
+      "scene": "stage", "dur": 3.2,
+      "params": {"s": 58, "floor": 1450},
+      "camera": {"from": {"zoom": 1.0, "y": 20}, "to": {"zoom": 1.08, "y": -10}, "dof": 1.2},
+      "actors": {
+        "talent": {"x": 0.42, "tower": {"base": 9}}
+      },
+      "events": [
+        {"t": 0.0, "do": "stack", "who": "talent", "until": 0.95, "rate": 2.3},
+        {"t": 0.3, "do": "text", "text": "ТАЛАНТ РЕШИЛ,\nЧТО ЭТОГО ХВАТИТ.", "dur": 2.8},
+        {"t": 1.0, "do": "pose", "who": "talent", "pose": "squat_rest", "dur": 0.45, "ease": "out_cubic"},
+        {"t": 1.4, "do": "sparkle", "who": "talent", "to": 1.0, "dur": 0.15, "hold": 1.1},
+        {"t": 2.2, "do": "dim", "who": "talent", "to": 0.85, "dur": 0.9},
+        {"t": 2.2, "do": "spot", "who": "talent", "to": 0.35, "dur": 0.9}
+      ]
+    },
+    {
+      "scene": "stage", "dur": 3.4,
+      "params": {"s": 58, "floor": 1450},
+      "camera": {"from": {"zoom": 1.06, "y": -10}, "to": {"zoom": 1.0, "y": 20}, "dof": 1.2},
+      "actors": {
+        "motivation": {"x": 0.42, "tower": {"base": 9}, "flame": 1.0}
+      },
+      "events": [
+        {"t": 0.0, "do": "stack", "who": "motivation", "until": 1.45, "rate": 2.6},
+        {"t": 0.3, "do": "text", "text": "МОТИВАЦИЯ ГОРИТ ЯРКО.\nНО НЕДОЛГО.", "dur": 3.0},
+        {"t": 0.9, "do": "flame", "who": "motivation", "to": 0.0, "dur": 1.5, "ease": "inout"},
+        {"t": 1.5, "do": "pose", "who": "motivation", "pose": "squat_despair", "dur": 0.4, "ease": "out_cubic"},
+        {"t": 2.3, "do": "pose", "who": "motivation", "pose": "squat_slump", "dur": 0.6},
+        {"t": 2.1, "do": "dim", "who": "motivation", "to": 1.0, "dur": 1.0},
+        {"t": 2.1, "do": "spot", "who": "motivation", "to": 0.3, "dur": 1.0}
+      ]
+    },
+    {
+      "scene": "stage", "dur": 3.4,
+      "params": {"s": 62, "floor": 1450},
+      "camera": {"from": {"zoom": 1.0, "y": 10}, "to": {"zoom": 1.1, "y": -60}, "dof": 1.2},
+      "actors": {
+        "discipline": {"x": 0.42, "tower": {"base": 7}, "level": 0.3}
+      },
+      "events": [
+        {"t": 0.0, "do": "stack", "who": "discipline", "until": 3.4, "rate": 1.2},
+        {"t": 0.3, "do": "text", "text": "ДИСЦИПЛИНА\nПРОСТО ПРОДОЛЖАЕТ.", "dur": 3.0},
+        {"t": 0.2, "do": "level", "who": "discipline", "to": 0.6, "dur": 3.0, "ease": "linear"}
+      ]
+    },
+    {
+      "scene": "stage", "dur": 2.8,
+      "params": {"s": 30},
+      "camera": {"from": {"zoom": 1.08, "y": 10}, "to": {"zoom": 0.98, "y": -40}},
+      "actors": {
+        "talent": {"x": 0.2, "tower": {"base": 11}, "pose": "squat_rest", "dim": 0.85, "spot": 0.3},
+        "motivation": {"x": 0.5, "tower": {"base": 12}, "pose": "squat_slump", "dim": 1.0, "spot": 0.25, "flame": 0.0},
+        "discipline": {"x": 0.8, "tower": {"base": 11}, "level": 0.6}
+      },
+      "events": [
+        {"t": 0.0, "do": "stack", "who": "discipline", "until": 2.8, "rate": 3.0},
+        {"t": 0.2, "do": "text", "text": "ДЕНЬ ЗА ДНЁМ.", "dur": 2.4},
+        {"t": 0.0, "do": "level", "who": "discipline", "to": 0.95, "dur": 2.8, "ease": "linear"},
+        {"t": 1.4, "do": "spot", "who": "talent", "to": 0.1, "dur": 1.0},
+        {"t": 1.4, "do": "spot", "who": "motivation", "to": 0.08, "dur": 1.0}
+      ]
+    },
+    {
+      "scene": "stage", "dur": 3.8, "climax": true, "climax_at": 0.45,
+      "params": {"s": 36, "floor": 1400, "haze": 1.0},
+      "camera": {"from": {"zoom": 1.08, "y": -60}, "to": {"zoom": 0.94, "y": 0}},
+      "actors": {
+        "discipline": {"x": 0.47, "tower": {"base": 19}, "level": 0.95, "pile": 6}
+      },
+      "events": [
+        {"t": 0.0, "do": "stack", "who": "discipline", "until": 0.5, "rate": 2.0},
+        {"t": 0.45, "do": "vfx", "type": "light_pillar", "at": {"who": "discipline", "at": "tower"},
+         "floor": 1400, "width": 70, "dur": 3.4},
+        {"t": 0.45, "do": "impact", "frames": 3},
+        {"t": 0.55, "do": "level", "who": "discipline", "to": 1.0, "dur": 0.4, "text": "MAX"},
+        {"t": 0.7, "do": "vfx", "type": "system", "title": "LEVEL UP",
+         "lines": [{"text": "DISCIPLINE  Lv. {}", "count": [98, 99], "color": "#fde68a"},
+                   "Skill unlocked: CONSISTENCY"], "y": 0.2, "dur": 2.6, "color": "#a78bfa"},
+        {"t": 0.9, "do": "pose", "who": "discipline", "pose": "stand_proud", "dur": 0.5, "ease": "out_cubic"},
+        {"t": 1.0, "do": "eyes", "who": "discipline", "to": 1.0, "dur": 0.4},
+        {"t": 1.0, "do": "core", "who": "discipline", "to": 1.8, "dur": 0.6},
+        {"t": 1.05, "do": "vfx", "type": "shadow_rise", "caster": "discipline", "rise": 1.2, "dur": 2.75,
+         "rows": [[0.9, 4, 0.8, 16], [0.74, 7, 2.2, 24], [0.6, 10, 3.4, 30]]}
+      ]
+    },
+    {
+      "scene": "title", "dur": 3.4, "out": "fade",
+      "params": {"lines": ["МОТИВАЦИЯ — ЭТО ИСКРА.", "ДИСЦИПЛИНА — ЭТО АРМИЯ.*"],
+                 "sub": "КАЖДЫЙ ДЕНЬ ВСТАЁТ ЗА ТВОЕЙ СПИНОЙ", "size": 54, "accent": "#a78bfa"}
+    }
+  ]
+}

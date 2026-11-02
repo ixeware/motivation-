@@ -16,6 +16,7 @@ never in the text.
   afterimage      chrome-overdrive rainbow afterimages, time slows
   speedlines      radial anime speed lines
   slash           invisible cuts across the screen
+  light_pillar    a beam of light shoots up from a point (finished tower, ascension)
 """
 from __future__ import annotations
 
@@ -60,6 +61,11 @@ def anchor(ctx, spec, default=None):
     elif at == "front":
         cp = (j.neck[0] - j.up[0] * s * 0.95, j.neck[1] - j.up[1] * s * 0.95)
         p = (cp[0] + st.facing * s * 2.4, cp[1] - s * 0.6)
+    elif at == "tower":
+        prm = ctx.shot.get("params", {})
+        bh = s * float(prm.get("block_h", 0.62))
+        floor = st.floor if st.floor is not None else st.y
+        p = (st.x + st.tower_side * s * 3.1, floor - bh * 0.7 - st.tower * (bh + 2))
     else:  # core
         p = (j.neck[0] - j.up[0] * s * 0.95, j.neck[1] - j.up[1] * s * 0.95)
     return (p[0] + float(spec.get("dx", 0)) * s, p[1] + float(spec.get("dy", 0)) * s)
@@ -717,21 +723,34 @@ class ShadowRise(VFX):
         floor = anchor(ctx, {"who": caster.id, "at": "feet"})[1]
         spread = float(self.ev.get("spread", 4.2)) * caster.s
         rnd = random.Random(self.seed)
-        soldiers = []
-        for i in range(n):
-            side = -1 if i % 2 == 0 else 1
-            rank = i // 2 + 1
-            x = caster.x + side * (spread * 0.45 * rank / max(1, (n + 1) // 2) + caster.s * 1.2)
-            delay = rnd.random() * 0.6
-            sc = s * (0.9 - 0.06 * rank)
-            soldiers.append((x, delay, sc, side))
+        soldiers = []   # (x, delay, scale, side, depth_offset)
+        rows = self.ev.get("rows")
+        if rows:
+            # formation behind the hero: [[scale, count, back(px in caster radii), width(caster radii)], ...]
+            for ri, row in enumerate(rows):
+                rs_, cnt, back = float(row[0]), int(row[1]), float(row[2])
+                width = float(row[3]) if len(row) > 3 else spread / caster.s
+                for i in range(cnt):
+                    u = (i + 0.5) / cnt - 0.5
+                    x = caster.x + u * width * caster.s + (rnd.random() - 0.5) * caster.s * 0.6
+                    if abs(x - caster.x) < caster.s * 1.4 and ri == 0:
+                        x += math.copysign(caster.s * 1.6, x - caster.x or 1)
+                    soldiers.append((x, ri * 0.25 + rnd.random() * 0.45, caster.s * rs_, 1 if u > 0 else -1,
+                                     back * caster.s))
+        else:
+            for i in range(n):
+                side = -1 if i % 2 == 0 else 1
+                rank = i // 2 + 1
+                x = caster.x + side * (spread * 0.45 * rank / max(1, (n + 1) // 2) + caster.s * 1.2)
+                soldiers.append((x, rnd.random() * 0.6, s * (0.9 - 0.06 * rank), side, 0.0))
         pose = rig.pose_dict("stand" if view == "front" else "stand_side")
+        build = caster.look.build
 
         def draw(c):
-            for x, delay, sc, side in sorted(soldiers, key=lambda q: q[2]):
+            for x, delay, sc, side, back in sorted(soldiers, key=lambda q: (-q[4], q[2])):
                 k = out_cubic(win(lt, delay, delay + rise))
                 pool = out_cubic(win(lt, delay * 0.5, delay * 0.5 + 0.4))
-                fl = floor - (caster.s - sc) * 0.2
+                fl = floor - (caster.s - sc) * 0.2 - back
                 c.save()
                 c.scale(1, 0.22)
                 c.drawCircle(x, fl / 0.22, sc * 1.9 * pool, gfx.paint("#020005", 0.95))
@@ -739,11 +758,11 @@ class ShadowRise(VFX):
                 c.restore()
                 if k <= 0:
                     continue
-                hip = fl - rig.ground_offset(pose, sc) * k + sc * 0.2 * (1 - k)
+                hip = fl - rig.ground_offset(pose, sc, 1, build) * k + sc * 0.2 * (1 - k)
                 c.save()
-                c.clipRect(skia.Rect(x - sc * 5, fl - sc * 12, x + sc * 5, fl + 2))
+                c.clipRect(skia.Rect(x - sc * 6, fl - sc * 16, x + sc * 6, fl + 2))
                 rig.draw_figure(c, pose, x, hip + (1 - k) * sc * 4, sc, facing=-side if view == "side" else 1,
-                                look=rig.Look(shadow_figure=True, glow=0, alpha=0.95))
+                                look=rig.Look(shadow_figure=True, glow=0, alpha=0.95, build=build))
                 c.restore()
                 rnd2 = random.Random(int(x))
                 for j in range(8):
@@ -901,7 +920,7 @@ class Afterimage(VFX):
                     continue
                 st = objs[who].state(tt, ctx.W)
                 look = rig.Look(color=self.COLORS[i % len(self.COLORS)], glow=0.5, alpha=0.55 * (1 - i / (n + 1)),
-                                legs=st.look.legs)
+                                legs=st.look.legs, build=st.look.build)
                 c.saveLayer(skia.Rect(st.x - st.s * 8, st.y - st.s * 9, st.x + st.s * 8, st.y + st.s * 6),
                             skia.Paint(BlendMode=gfx.ADD))
                 rig.draw_figure(c, st.pose, st.x, st.y, st.s, facing=st.facing, look=look)
@@ -954,6 +973,76 @@ class Slash(VFX):
         ctx.add("fx", draw, z=6)
 
 
+class LightPillar(VFX):
+    """A vertical beam of light shoots up (finished tower, ascension, level up)."""
+    default_dur = 4.0
+
+    def sounds(self):
+        return [(0.0, "boom", 0.7), (0.0, "chime", 0.5), (0.05, "riser", 0.25)]
+
+    def pre(self, ctx, actors):
+        lt = self.lt(ctx)
+        if ctx.t < self.t0 or lt > self.dur:
+            return
+        if lt < 0.12:
+            ctx.flash = max(ctx.flash, 0.55 * (1 - lt / 0.12))
+            ctx.flash_c = "white"
+        ctx.zoom_punch += 0.03 * (1 - win(lt, 0, 0.4)) ** 2
+        ctx.shake = max(ctx.shake, 0.25 * (1 - win(lt, 0, 0.5)))
+
+    def build(self, ctx, actors):
+        lt = self.lt(ctx)
+        if ctx.t < self.t0 or lt > self.dur:
+            return
+        base = anchor(ctx, self.ev.get("at", [0.5, 0.6]))
+        color = self.ev.get("color", "white")
+        w0 = float(self.ev.get("width", 60))
+        grow = out_expo(win(lt, 0, 0.35))
+        fade = 1 - win(lt, self.dur - 0.6, self.dur)
+        burst = 1 - win(lt, 0.0, 0.8)
+        w = w0 * (0.55 + 0.9 * burst)
+        top = base[1] - (base[1] + 400) * grow
+
+        def draw(c):
+            if grow <= 0:
+                return
+            for k_, al in ((3.2, 0.05), (2.0, 0.08), (1.2, 0.14), (0.55, 0.35), (0.22, 0.7)):
+                ww = w * k_
+                sh = gfx.linear(0, top, 0, base[1], [(0, color, 0.0), (0.25, color, al * fade),
+                                                     (1, color, al * fade * 1.2)])
+                c.drawRect(skia.Rect(base[0] - ww / 2, top, base[0] + ww / 2, base[1]),
+                           skia.Paint(AntiAlias=True, Shader=sh, BlendMode=gfx.ADD,
+                                      MaskFilter=skia.MaskFilter.MakeBlur(skia.kNormal_BlurStyle, max(2, ww * 0.25))))
+            # flare at the base
+            r = w * (1.2 + 1.6 * burst)
+            gfx.glow_circle(c, *base, r * 0.5, color, 0.9 * fade, spread=3.5)
+            c.save()
+            c.translate(*base)
+            for ang in (0, 90):
+                c.save()
+                c.rotate(ang + lt * 20)
+                c.drawPath(gfx.poly([(0, -r * 1.6), (r * 0.08, 0), (0, r * 1.6), (-r * 0.08, 0)]),
+                           gfx.paint(color, 0.8 * fade, blend=gfx.ADD))
+                c.restore()
+            c.restore()
+            # ring on the floor
+            ring = win(lt, 0.0, 0.9)
+            if 0 < ring < 1:
+                c.save()
+                c.scale(1, 0.18)
+                c.drawCircle(base[0], float(self.ev.get("floor", base[1])) / 0.18, 40 + ring * 520,
+                             gfx.paint(color, (1 - ring) * 0.7, stroke=6 / 0.18 * 0.2 + 3))
+                c.restore()
+            # particles rising in the beam
+            rnd = random.Random(self.seed + 5)
+            for i in range(40):
+                ph = (lt * (0.4 + rnd.random() * 0.8) + rnd.random()) % 1.0
+                yy = base[1] - ph * (base[1] - top)
+                xx = base[0] + (rnd.random() - 0.5) * w * 1.6
+                c.drawCircle(xx, yy, 1.5 + rnd.random() * 2, gfx.paint(color, 0.7 * fade * (1 - ph), blend=gfx.ADD))
+        ctx.add(self.ev.get("layer", "fx"), draw, z=3)
+
+
 REGISTRY = {
     "hollow_purple": HollowPurple,
     "energy_orb": EnergyOrb,
@@ -967,6 +1056,7 @@ REGISTRY = {
     "afterimage": Afterimage,
     "speedlines": SpeedLines,
     "slash": Slash,
+    "light_pillar": LightPillar,
 }
 
 

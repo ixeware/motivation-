@@ -203,3 +203,110 @@ def floor_shadow(canvas, x, y, w, a=0.5):
     canvas.scale(1, 0.25)
     canvas.drawCircle(x, y / 0.25, w, gfx.paint("black", a, blur=w * 0.35))
     canvas.restore()
+
+
+# ----------------------------------------------------------------------------- stage (reference: newer videos)
+
+
+def stage_backdrop(canvas, W, H, floor_y: float, *, tint="#141518", haze=0.6):
+    """Black stage: soft dark backdrop, glossy floor gradient, bright floor edge line."""
+    canvas.drawRect(skia.Rect(-W, -H, 2 * W, floor_y),
+                    skia.Paint(Shader=gfx.linear(0, -H * 0.2, 0, floor_y,
+                                                 [(0, "#050506", 1), (0.6, "#0b0b0d", 1), (1, tint, 1)])))
+    canvas.drawRect(skia.Rect(-W, floor_y, 2 * W, 2 * H),
+                    skia.Paint(Shader=gfx.linear(0, floor_y, 0, floor_y + H * 0.45,
+                                                 [(0, "#1d1e22", 1), (0.25, "#111215", 1), (1, "#060607", 1)])))
+    # haze band right above the floor (light scattered by the spots)
+    if haze > 0:
+        canvas.drawRect(skia.Rect(-W, floor_y - 260, 2 * W, floor_y),
+                        skia.Paint(Shader=gfx.linear(0, floor_y - 260, 0, floor_y,
+                                                     [(0, "white", 0.0), (1, "white", 0.05 * haze)])))
+    # glossy edge where the floor meets the dark
+    canvas.drawRect(skia.Rect(-W, floor_y - 1.5, 2 * W, floor_y + 1.5), gfx.paint("white", 0.10))
+    canvas.drawRect(skia.Rect(-W, floor_y - 6, 2 * W, floor_y + 6), gfx.paint("white", 0.05, blur=6))
+
+
+_BEAM_CACHE: dict = {}
+
+
+def _beam_image(w_top: float, w_bottom: float, height: float, tilt: float, color) -> tuple:
+    """Pre-rendered soft beam (cached, 1/3 resolution). Returns (image, scale, pad)."""
+    key = (int(w_top), int(w_bottom), int(height), int(tilt), str(color))
+    hit = _BEAM_CACHE.get(key)
+    if hit is not None:
+        return hit
+    q = 1 / 3
+    pad = 60.0
+    Wd = w_bottom + abs(tilt) * 2 + pad * 2
+    surf = skia.Surface(max(4, int(Wd * q)), max(4, int((height + pad * 2) * q)))
+    c = surf.getCanvas()
+    c.clear(skia.ColorTRANSPARENT)
+    c.scale(q, q)
+    cx = Wd / 2
+    top, bot = pad, pad + height
+    for k, al in ((1.0, 0.035), (0.78, 0.045), (0.56, 0.05), (0.36, 0.055), (0.18, 0.05)):
+        wt, wb = w_top * k, w_bottom * k
+        pth = gfx.poly([(cx + tilt - wt / 2, top), (cx + tilt + wt / 2, top), (cx + wb / 2, bot), (cx - wb / 2, bot)])
+        sh = gfx.linear(0, top, 0, bot, [(0, color, al * 1.6), (0.45, color, al), (1, color, al * 1.3)])
+        c.drawPath(pth, skia.Paint(AntiAlias=True, Shader=sh,
+                                   MaskFilter=skia.MaskFilter.MakeBlur(skia.kNormal_BlurStyle, 10 + 22 * k)))
+    img = surf.makeImageSnapshot()
+    _BEAM_CACHE[key] = (img, Wd, pad)
+    if len(_BEAM_CACHE) > 64:
+        _BEAM_CACHE.pop(next(iter(_BEAM_CACHE)))
+    return _BEAM_CACHE[key]
+
+
+def spotlight(canvas, x: float, floor_y: float, *, top_y: float = -200.0, w_top: float = 70.0,
+              w_bottom: float = 420.0, a: float = 1.0, color="white", tilt: float = 0.0, t: float = 0.0,
+              dust: bool = True, seed: int = 0):
+    """Volumetric stage beam from above + light pool on the floor. Draw it behind the actors."""
+    if a <= 0.01:
+        return
+    xt = x + tilt
+    height = floor_y - top_y
+    img, Wd, pad = _beam_image(w_top, w_bottom, height, tilt, color)
+    p = skia.Paint(BlendMode=gfx.ADD)
+    p.setAlphaf(min(1.0, a))
+    canvas.drawImageRect(img, skia.Rect(x - Wd / 2, top_y - pad, x + Wd / 2, floor_y + pad),
+                         skia.SamplingOptions(skia.FilterMode.kLinear), p)
+    # lamp glare at the top
+    gfx.glow_circle(canvas, xt, top_y + 40, w_top * 0.5, color, 0.35 * a, spread=3.0)
+    # pool of light on the floor (ellipse) + a hot center
+    canvas.save()
+    canvas.scale(1, 0.16)
+    gfx.glow_circle(canvas, x, floor_y / 0.16, w_bottom * 0.62, color, 0.28 * a, spread=1.7)
+    gfx.glow_circle(canvas, x, floor_y / 0.16, w_bottom * 0.3, color, 0.22 * a, spread=1.6)
+    canvas.restore()
+    if dust:
+        rnd = random.Random(seed + 101)
+        for i in range(22):
+            fy = rnd.random()
+            yy = top_y + (floor_y - top_y) * ((fy + t * 0.03 * (0.5 + rnd.random())) % 1.0)
+            frac = (yy - top_y) / max(1.0, floor_y - top_y)
+            half = (w_top + (w_bottom - w_top) * frac) / 2 * 0.8
+            xx = x + tilt * (1 - frac) + (rnd.random() - 0.5) * 2 * half + math.sin(t * 0.7 + i) * 6
+            canvas.drawCircle(xx, yy, 1.2 + rnd.random() * 1.6, gfx.paint(color, 0.22 * a * rnd.random(),
+                                                                          blend=gfx.ADD))
+
+
+def pedestal(canvas, x: float, floor_y: float, w: float, h: float, *, a=1.0):
+    gfx.rrect(canvas, x - w / 2, floor_y - h, w, h, 3, gfx.paint("#0d0d10", a))
+    canvas.drawRect(skia.Rect(x - w / 2, floor_y - h, x + w / 2, floor_y - h + 2), gfx.paint("white", 0.18 * a))
+
+
+def block_pile(canvas, x: float, floor_y: float, bw: float, bh: float, n: int, *, a=1.0, cols=3, dim=0.55):
+    """Grey bricks waiting to be stacked (the 'supply')."""
+    from .rig import OUTLINE_C
+    rows = max(0, (n + cols - 1) // cols)
+    k = 0
+    for r in range(rows):
+        for cc in range(cols):
+            if k >= n:
+                return
+            bx = x + (cc - (cols - 1) / 2) * (bw + 3)
+            by = floor_y - r * (bh + 3)
+            gfx.rrect(canvas, bx - bw / 2 - 1.2, by - bh - 1.2, bw + 2.4, bh + 2.4, bh * 0.18, gfx.paint(OUTLINE_C, a))
+            gfx.rrect(canvas, bx - bw / 2, by - bh, bw, bh, bh * 0.18,
+                      gfx.paint(gfx.mix("#d6d6d2", "#55565b", dim), a))
+            k += 1

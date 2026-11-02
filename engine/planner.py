@@ -23,6 +23,9 @@ TEMPLATES = {
     "grind_levelup": "solo grind as a game: quest window, night study, training, LEVEL UP and an army of shadows",
     "adaptation": "hero keeps getting hit by an obstacle, a wheel above the head turns each time, then he adapts and "
                   "counters",
+    "towers": "newer reference look: black stage, spotlights, glossy reflective floor; three archetypes stack glowing "
+              "blocks into towers, two of them quit, the hero keeps stacking; the finished tower shoots a beam of light "
+              "and the hidden reference fires",
 }
 
 ARCHETYPES = [  # (regex on the lowercased request, english label, core color)
@@ -50,6 +53,9 @@ QUOTES = {
                           "Никто не видел ночей. Все увидели уровень."),
         "adaptation": (["КАЖДОЕ ПАДЕНИЕ —", "ЭТО ПОВОРОТ КОЛЕСА.*"], "ТЫ НЕ ПРОИГРЫВАЕШЬ. ТЫ АДАПТИРУЕШЬСЯ",
                        "Каждое падение — это поворот колеса. Ты не проигрываешь, ты адаптируешься."),
+        "towers": (["МОТИВАЦИЯ — ЭТО ИСКРА.", "ДИСЦИПЛИНА — ЭТО АРМИЯ.*"], "КАЖДЫЙ ДЕНЬ ВСТАЁТ ЗА ТВОЕЙ СПИНОЙ",
+                   "Мотивация — это искра. Дисциплина — это армия. Каждый день, когда ты всё равно пришёл, "
+                   "однажды встанет за твоей спиной."),
     },
     "en": {
         "classroom_rematch": (["SOMETIMES PRIDE", "IS THE BEST FUEL.*"], "MAKE IT A STRENGTH, NOT A WEAKNESS",
@@ -60,6 +66,8 @@ QUOTES = {
                           "Nobody saw the nights. Everyone saw the level."),
         "adaptation": (["EVERY FALL IS", "ONE TURN OF THE WHEEL.*"], "YOU ARE NOT LOSING. YOU ARE ADAPTING",
                        "Every fall is one turn of the wheel. You are not losing, you are adapting."),
+        "towers": (["MOTIVATION IS A SPARK.", "DISCIPLINE IS AN ARMY.*"], "EVERY DAY YOU SHOWED UP STANDS BEHIND YOU",
+                   "Motivation is a spark. Discipline is an army."),
     },
 }
 
@@ -79,7 +87,9 @@ def rule_brief(request: str, lang: str = "ru") -> dict:
     found.sort()
     labels = [f[1] for f in found]
     ref = refs.match(t)
-    if re.search(r"класс|оценк|экзамен|школ|контрольн|тест|урок", t):
+    if re.search(r"башн|строит|постро|складыва|блок|кирпич|сцен|прожектор|отражени", t):
+        template = "towers"
+    elif re.search(r"класс|оценк|экзамен|школ|контрольн|тест|урок", t):
         template = "classroom_rematch"
     elif re.search(r"адапт|колес|снова и снова|раз за разом", t):
         template = "adaptation"
@@ -91,15 +101,17 @@ def rule_brief(request: str, lang: str = "ru") -> dict:
         template = {"system": "grind_levelup", "shadow_rise": "grind_levelup", "wheel": "adaptation",
                     "hollow_purple": "duel_power", "aura": "duel_power", "domain_shrine": "duel_power"}.get(
             ref or "", "classroom_rematch")
-    if ref == "wheel":
+    if ref == "wheel" and template != "towers":
         template = "adaptation"
     if ref is None:
         ref = {"classroom_rematch": "domain_void", "duel_power": "hollow_purple", "grind_levelup": "system",
-               "adaptation": "wheel"}[template]
+               "adaptation": "wheel", "towers": "shadow_rise"}[template]
     positive = [lbl for lbl in labels if lbl not in NEGATIVE]
     default_hero = {"classroom_rematch": "EGO", "duel_power": "EGO", "grind_levelup": "DISCIPLINE",
-                    "adaptation": "YOU"}[template]
-    if "EGO" in positive:
+                    "adaptation": "YOU", "towers": "DISCIPLINE"}[template]
+    if template == "towers":
+        hero = "DISCIPLINE" if "DISCIPLINE" in positive else (positive[-1] if positive else default_hero)
+    elif "EGO" in positive:
         hero = "EGO"
     elif template == "duel_power" and len(positive) >= 3:
         hero = positive[-1]
@@ -112,7 +124,8 @@ def rule_brief(request: str, lang: str = "ru") -> dict:
     rivals = [lbl for lbl in labels if lbl != hero]
     rivals.sort(key=lambda x: x not in NEGATIVE if template in ("adaptation", "grind_levelup") else 0)
     defaults = {"classroom_rematch": ["DISCIPLINE", "TALENT"], "duel_power": ["TALENT", "HARD WORK"],
-                "grind_levelup": ["LAZINESS", "DOUBT"], "adaptation": ["FAILURE", "FEAR"]}[template]
+                "grind_levelup": ["LAZINESS", "DOUBT"], "adaptation": ["FAILURE", "FEAR"],
+                "towers": ["TALENT", "MOTIVATION"]}[template]
     for d in defaults:
         if len(rivals) >= 2:
             break
@@ -123,7 +136,8 @@ def rule_brief(request: str, lang: str = "ru") -> dict:
                                            "PRIDE": "ГОРДОСТЬ", "HARD WORK": "ТРУД"}.get(hero, hero)
     lines = [ln.replace("{hero}", hero_word) for ln in lines]
     return {"template": template, "reference": ref, "hero": hero, "rivals": rivals[:2],
-            "hook": " VS ".join(rivals[:2] + [hero]) if template in ("classroom_rematch", "duel_power")
+            "hook": "" if template == "towers" else " VS ".join(rivals[:2] + [hero])
+            if template in ("classroom_rematch", "duel_power")
             else f"{hero}: DAY 1" if template == "grind_levelup" else f"{hero} VS {rivals[0]}",
             "end_lines": lines, "end_sub": sub, "caption": caption, "hashtags": HASHTAGS + [hero.lower().replace(" ", "")],
             "lang": lang}
@@ -573,8 +587,122 @@ def build_adaptation(b: dict) -> dict:
     return _wrap(b, cast, shots, ref)
 
 
+SUBS = {
+    "ru": {"intro": "ОДНА ЦЕЛЬ. ТРИ ПОДХОДА.", "quit": "{r} РЕШИЛ,\nЧТО ЭТОГО ХВАТИТ.",
+           "burn": "{r} ГОРИТ ЯРКО.\nНО НЕДОЛГО.", "keep": "{h}\nПРОСТО ПРОДОЛЖАЕТ.", "days": "ДЕНЬ ЗА ДНЁМ."},
+    "en": {"intro": "ONE GOAL. THREE WAYS.", "quit": "{r} DECIDED\nIT WAS ENOUGH.",
+           "burn": "{r} BURNS BRIGHT.\nBUT NOT FOR LONG.", "keep": "{h}\nJUST KEEPS GOING.", "days": "DAY AFTER DAY."},
+}
+RU_WORD = {"TALENT": "ТАЛАНТ", "MOTIVATION": "МОТИВАЦИЯ", "DISCIPLINE": "ДИСЦИПЛИНА", "EGO": "ЭГО",
+           "HARD WORK": "ТРУД", "FOCUS": "ФОКУС", "LAZINESS": "ЛЕНЬ", "FEAR": "СТРАХ", "DOUBT": "СОМНЕНИЕ",
+           "PRIDE": "ГОРДОСТЬ", "HABIT": "ПРИВЫЧКА", "PATIENCE": "ТЕРПЕНИЕ", "COMFORT": "КОМФОРТ", "YOU": "ТЫ"}
+
+
+def build_towers(b: dict) -> dict:
+    """Stage + spotlights + glossy floor. r1 quits early (sparkle), r2 burns out (flame), hero keeps stacking."""
+    ref = refs.by_id(b["reference"])
+    hero, (r1, r2) = b["hero"], b["rivals"]
+    lang = b.get("lang", "ru")
+    sub = SUBS.get(lang, SUBS["en"])
+    word = (lambda x: RU_WORD.get(x, x)) if lang == "ru" else (lambda x: x)
+    stage = lambda s, floor=None: {"s": s, **({"floor": floor} if floor else {})}
+    shots = [
+        {"scene": "stage", "dur": 4.2, "params": stage(30),
+         "camera": {"from": {"zoom": 1.0, "y": 50}, "to": {"zoom": 1.07, "y": 10}},
+         "actors": {"r1": {"x": 0.2, "tower": {"base": 0}}, "r2": {"x": 0.5, "tower": {"base": 0}},
+                    "hero": {"x": 0.8, "tower": {"base": 0}, "level": 0.05}},
+         "events": [{"t": 0.3, "do": "text", "text": sub["intro"], "dur": 3.6},
+                    {"t": 0.3, "do": "stack", "who": "r1", "until": 4.2, "rate": 2.3},
+                    {"t": 0.3, "do": "stack", "who": "r2", "until": 4.2, "rate": 2.4},
+                    {"t": 0.3, "do": "stack", "who": "hero", "until": 4.2, "rate": 1.0},
+                    {"t": 0.3, "do": "level", "who": "hero", "to": 0.2, "dur": 3.8, "ease": "linear"},
+                    {"t": 1.2, "do": "sparkle", "who": "r1", "to": 1.0, "dur": 0.2, "hold": 1.4}]},
+        {"scene": "stage", "dur": 3.2, "params": stage(58, 1450),
+         "camera": {"from": {"zoom": 1.0, "y": 20}, "to": {"zoom": 1.08, "y": -10}, "dof": 1.2},
+         "actors": {"r1": {"x": 0.42, "tower": {"base": 9}}},
+         "events": [{"t": 0.0, "do": "stack", "who": "r1", "until": 0.95, "rate": 2.3},
+                    {"t": 0.3, "do": "text", "text": sub["quit"].format(r=word(r1)), "dur": 2.8},
+                    {"t": 1.0, "do": "pose", "who": "r1", "pose": "squat_rest", "dur": 0.45, "ease": "out_cubic"},
+                    {"t": 1.4, "do": "sparkle", "who": "r1", "to": 1.0, "dur": 0.15, "hold": 1.1},
+                    {"t": 2.2, "do": "dim", "who": "r1", "to": 0.85, "dur": 0.9},
+                    {"t": 2.2, "do": "spot", "who": "r1", "to": 0.35, "dur": 0.9}]},
+        {"scene": "stage", "dur": 3.4, "params": stage(58, 1450),
+         "camera": {"from": {"zoom": 1.06, "y": -10}, "to": {"zoom": 1.0, "y": 20}, "dof": 1.2},
+         "actors": {"r2": {"x": 0.42, "tower": {"base": 9}, "flame": 1.0}},
+         "events": [{"t": 0.0, "do": "stack", "who": "r2", "until": 1.45, "rate": 2.6},
+                    {"t": 0.3, "do": "text", "text": sub["burn"].format(r=word(r2)), "dur": 3.0},
+                    {"t": 0.9, "do": "flame", "who": "r2", "to": 0.0, "dur": 1.5, "ease": "inout"},
+                    {"t": 1.5, "do": "pose", "who": "r2", "pose": "squat_despair", "dur": 0.4, "ease": "out_cubic"},
+                    {"t": 2.3, "do": "pose", "who": "r2", "pose": "squat_slump", "dur": 0.6},
+                    {"t": 2.1, "do": "dim", "who": "r2", "to": 1.0, "dur": 1.0},
+                    {"t": 2.1, "do": "spot", "who": "r2", "to": 0.3, "dur": 1.0}]},
+        {"scene": "stage", "dur": 3.4, "params": stage(62, 1450),
+         "camera": {"from": {"zoom": 1.0, "y": 10}, "to": {"zoom": 1.1, "y": -60}, "dof": 1.2},
+         "actors": {"hero": {"x": 0.42, "tower": {"base": 7}, "level": 0.3}},
+         "events": [{"t": 0.0, "do": "stack", "who": "hero", "until": 3.4, "rate": 1.2},
+                    {"t": 0.3, "do": "text", "text": sub["keep"].format(h=word(hero)), "dur": 3.0},
+                    {"t": 0.2, "do": "level", "who": "hero", "to": 0.6, "dur": 3.0, "ease": "linear"}]},
+        {"scene": "stage", "dur": 2.8, "params": stage(30),
+         "camera": {"from": {"zoom": 1.08, "y": 10}, "to": {"zoom": 0.98, "y": -40}},
+         "actors": {"r1": {"x": 0.2, "tower": {"base": 11}, "pose": "squat_rest", "dim": 0.85, "spot": 0.3},
+                    "r2": {"x": 0.5, "tower": {"base": 12}, "pose": "squat_slump", "dim": 1.0, "spot": 0.25,
+                           "flame": 0.0},
+                    "hero": {"x": 0.8, "tower": {"base": 11}, "level": 0.6}},
+         "events": [{"t": 0.0, "do": "stack", "who": "hero", "until": 2.8, "rate": 3.0},
+                    {"t": 0.2, "do": "text", "text": sub["days"], "dur": 2.4},
+                    {"t": 0.0, "do": "level", "who": "hero", "to": 0.95, "dur": 2.8, "ease": "linear"},
+                    {"t": 1.4, "do": "spot", "who": "r1", "to": 0.1, "dur": 1.0},
+                    {"t": 1.4, "do": "spot", "who": "r2", "to": 0.08, "dur": 1.0}]},
+    ]
+    climax_ev = [{"t": 0.0, "do": "stack", "who": "hero", "until": 0.5, "rate": 2.0},
+                 {"t": 0.45, "do": "vfx", "type": "light_pillar", "at": {"who": "hero", "at": "tower"}, "floor": 1400,
+                  "width": 70, "dur": 3.4},
+                 {"t": 0.45, "do": "impact", "frames": 3},
+                 {"t": 0.55, "do": "level", "who": "hero", "to": 1.0, "dur": 0.4, "text": "MAX"},
+                 {"t": 0.9, "do": "pose", "who": "hero", "pose": "stand_proud", "dur": 0.5, "ease": "out_cubic"},
+                 {"t": 1.0, "do": "eyes", "who": "hero", "to": 1.0, "dur": 0.4},
+                 {"t": 1.0, "do": "core", "who": "hero", "to": 1.8, "dur": 0.6}]
+    rid = ref["id"]
+    if rid in ("shadow_rise", "system"):
+        climax_ev += [{"t": 0.7, "do": "vfx", "type": "system", "title": "LEVEL UP",
+                       "lines": [{"text": f"{hero}  Lv. {{}}", "count": [98, 99], "color": "#fde68a"},
+                                 "Skill unlocked: CONSISTENCY"], "y": 0.2, "dur": 2.6, "color": "#a78bfa"},
+                      {"t": 1.05, "do": "vfx", "type": "shadow_rise", "caster": "hero", "rise": 1.2, "dur": 2.75,
+                       "rows": [[0.9, 4, 0.8, 16], [0.74, 7, 2.2, 24], [0.6, 10, 3.4, 30]]}]
+    elif rid.startswith("domain"):
+        climax_ev.append({"t": 0.9, "do": "vfx", "type": "domain", "caster": "hero", "expand_at": 0.3, "dur": 2.8,
+                          "style": ref.get("params", {}).get("style", "void")})
+    elif rid == "wheel":
+        climax_ev.append({"t": 0.0, "do": "vfx", "type": "wheel", "who": "hero", "turns": [0.45, 1.2], "dur": 3.8,
+                          "scale": 0.9})
+    elif rid == "hollow_purple":
+        climax_ev += [{"t": 1.0, "do": "pose", "who": "hero", "pose": "hands_out", "dur": 0.3},
+                      {"t": 1.0, "do": "vfx", "type": "hollow_purple", "caster": "hero", "charge": 0.8, "merge": 0.6,
+                       "travel": 0.8, "r": 30, "big": 140, "dur": 2.8, "to": [1.3, 0.1]}]
+    elif rid == "curse_marks":
+        climax_ev.append({"t": 1.0, "do": "marks", "who": "hero", "to": 1.0, "dur": 0.3})
+    else:
+        climax_ev.append({"t": 1.0, "do": "vfx", "type": "aura", "caster": "hero"})
+    shots.append({"scene": "stage", "dur": 3.8, "climax": True, "climax_at": 0.45,
+                  "params": {"s": 36, "floor": 1400, "haze": 1.0},
+                  "camera": {"from": {"zoom": 1.08, "y": -60}, "to": {"zoom": 0.94, "y": 0}},
+                  "actors": {"hero": {"x": 0.47, "tower": {"base": 19}, "level": 0.95, "pile": 6}},
+                  "events": climax_ev})
+    end = _title(b, "#a78bfa", dur=3.4)
+    end["params"]["size"] = 54
+    shots.append(end)
+    cast = {"r1": {"label": r1, "core": _core(r1, "gold"), "build": "slim"},
+            "r2": {"label": r2, "core": _core(r2, "#fb923c"), "build": "slim", "flame": 1.0},
+            "hero": {"label": hero, "core": _core(hero, "cyan"), "build": "slim", "eyes": "#a78bfa"}}
+    sc = _wrap(b, cast, shots, ref)
+    sc["style"].update({"fps": 60, "accent": "#a78bfa",
+                        "grade": {"saturation": 0.9, "contrast": 1.08, "bloom": 0.5, "vignette": 0.55, "grain": 0.035}})
+    sc["style"].pop("hook", None)
+    return sc
+
+
 BUILDERS = {"classroom_rematch": build_classroom, "duel_power": build_duel, "grind_levelup": build_grind,
-            "adaptation": build_adaptation}
+            "adaptation": build_adaptation, "towers": build_towers}
 
 
 def _wrap(b: dict, cast: dict, shots: list, ref: dict) -> dict:

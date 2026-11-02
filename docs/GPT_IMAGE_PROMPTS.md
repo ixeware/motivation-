@@ -109,6 +109,28 @@ in white, centered on three lines: "TALENT ARGUED." / "WORK ARGUED." / "EGO REFU
 "MAKE IT FUEL, NOT A CAGE". At the bottom a small tilted square red ink seal with the letter "E".
 ```
 
+### 2.9 Сцена с прожекторами и зеркальным полом (уровень новых роликов референса)
+```text
+SCENE: a pitch-black stage with a glossy, mirror-like black floor. Three slim white figures (smaller round heads,
+long capsule limbs, thin dark outline around every part) stand in a row, each lit by its own soft volumetric
+spotlight beam from above with a pool of light on the floor and tiny dust particles in the beam. Next to each
+figure a tower of glowing white rounded blocks on a small black pedestal, a pile of grey blocks on the other side.
+Left: "TALENT" squatting with a hand on his chin, a small four-point sparkle near his head, greyed out, his spot dim.
+Middle: "MOTIVATION" slumped with head down, a dying red flame and smoke above his head, greyed out.
+Right: "DISCIPLINE" bright white, placing a block on the tallest tower, cyan core glowing in his chest.
+Everything is reflected in the floor, the reflection softly fading downward. Labels are written on the floor under
+each figure in a bold monospace font with wide letter-spacing. Tiny watermark text near the bottom.
+```
+
+### 2.10 Финал «армия»
+```text
+SCENE: the same black glossy stage. A slim white figure "DISCIPLINE" stands with hands on hips next to a very tall
+tower of glowing white blocks; from the top of the tower a pillar of white light shoots up to the sky with a
+four-point lens flare. Behind him three rows of dark shadow figures with small glowing violet eyes rise from black
+pools on the floor, violet mist at their feet, the back rows smaller. Everything is mirrored in the glossy floor.
+A dark navy holographic panel with violet border floats at the top: "[ LEVEL UP ]".
+```
+
 ## 3. Небольшой сдвиг стиля (одна строка на выбор)
 
 ```text

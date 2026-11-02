@@ -190,13 +190,13 @@ class Renderer:
         ctx = Ctx(W=W, H=H, t=t, T=T, dur=sh["dur"], fps=self.fps, shot=shot, scenario=self.sc, beat=beat)
         states = {aid: a.state(t, W, beat) for aid, a in sh["actors"].items()}
         for st in states.values():
-            st.joints = rig.solve(st.pose, st.x, st.y, st.s, st.facing)
+            st.joints = rig.solve(st.pose, st.x, st.y, st.s, st.facing, st.look.build)
         ctx.actors = states
         ctx.actor_objs = sh["actors"]
         for fx in sh["vfx"]:
             fx.pre(ctx, states)
         for st in states.values():
-            st.joints = rig.solve(st.pose, st.x, st.y, st.s, st.facing)
+            st.joints = rig.solve(st.pose, st.x, st.y, st.s, st.facing, st.look.build)
         sh["scene"].build(ctx, states)
         for fx in sh["vfx"]:
             fx.build(ctx, states)
@@ -220,7 +220,12 @@ class Renderer:
 
         comp = self.comp.getCanvas()
         comp.clear(gfx.col("#0b0b0d"))
+        refl = sh["scene"].reflection(ctx)
+        camp = (W, H, shx, shy, rot, zoom, cx, cy)
         for name in ["bg", "bgfx", "back", "main", "front", "fx"]:
+            if refl is not None and name in ("back", "main"):
+                self._reflection(comp, ctx, refl, camp)
+                refl = None
             items = ctx.layers.get(name)
             if not items:
                 continue
@@ -237,12 +242,7 @@ class Renderer:
             c.clear(skia.ColorTRANSPARENT)
             c.save()
             c.scale(k * f, k * f)
-            par = PARALLAX[name]
-            z = zoom ** (par if name != "fx" else 1.0)
-            c.translate(W / 2 + shx * (0.5 + par * 0.5), H / 2 + shy * (0.5 + par * 0.5))
-            c.rotate(rot * par)
-            c.scale(z, z)
-            c.translate(-W / 2 - cx * par, -H / 2 - cy * par)
+            self._apply_cam(c, name, camp)
             for _, fn in sorted(items, key=lambda it: it[0]):
                 fn(c)
             c.restore()
@@ -324,6 +324,61 @@ class Renderer:
             img = self.comp.makeImageSnapshot()
         return img
 
+    @staticmethod
+    def _apply_cam(c: skia.Canvas, name: str, camp):
+        W, H, shx, shy, rot, zoom, cx, cy = camp
+        par = PARALLAX[name]
+        z = zoom ** (par if name != "fx" else 1.0)
+        c.translate(W / 2 + shx * (0.5 + par * 0.5), H / 2 + shy * (0.5 + par * 0.5))
+        c.rotate(rot * par)
+        c.scale(z, z)
+        c.translate(-W / 2 - cx * par, -H / 2 - cy * par)
+
+    def _reflection(self, comp: skia.Canvas, ctx: Ctx, refl: dict, camp):
+        """Glossy floor: mirror the actor/effect layers around the floor line, fade + blur them."""
+        W, H = self.W, self.H
+        k, f = self.k, 0.5
+        fy, fade = refl["floor"], refl["fade"]
+        rs = self._surface("refl", f)
+        c = rs.getCanvas()
+        c.clear(skia.ColorTRANSPARENT)
+        drawn = False
+        for name in refl.get("layers", ["main"]):
+            items = ctx.layers.get(name)
+            if not items or ctx.layer_alpha.get(name, 1.0) <= 0.001:
+                continue
+            drawn = True
+            c.save()
+            c.scale(k * f, k * f)
+            self._apply_cam(c, name, camp)
+            c.clipRect(skia.Rect(-2 * W, fy, 3 * W, fy + fade * 1.05))
+            c.translate(0, 2 * fy)
+            c.scale(1, -1)
+            for _, fn in sorted(items, key=lambda it: it[0]):
+                fn(c)
+            c.restore()
+        if not drawn:
+            return
+        c.save()
+        c.scale(k * f, k * f)
+        self._apply_cam(c, "main", camp)
+        mask = gfx.linear(0, fy, 0, fy + fade, [(0, "white", 1.0), (0.3, "white", 0.5), (1, "white", 0.0)])
+        c.drawRect(skia.Rect(-2 * W, fy - 4, 3 * W, fy + fade * 1.1),
+                   skia.Paint(Shader=mask, BlendMode=skia.BlendMode.kDstIn))
+        c.restore()
+        img = rs.makeImageSnapshot()
+        b = float(refl.get("blur", 3.0)) * k * f
+        if b > 0.3:
+            tmp = self._surface("refl_blur", f)
+            tc = tmp.getCanvas()
+            tc.clear(skia.ColorTRANSPARENT)
+            tc.drawImage(img, 0, 0, skia.SamplingOptions(),
+                         skia.Paint(ImageFilter=skia.ImageFilters.Blur(b, b, skia.TileMode.kDecal)))
+            img = tmp.makeImageSnapshot()
+        p = skia.Paint()
+        p.setAlphaf(min(1.0, float(refl["strength"])))
+        comp.drawImageRect(img, skia.Rect(0, 0, self.w, self.h), skia.SamplingOptions(skia.FilterMode.kLinear), p)
+
     # ------------------------------------------------------------------ overlays
     def _transition(self, ctx: Ctx, shot: dict, t: float, dur: float):
         kind = shot.get("in", "cut")
@@ -370,18 +425,32 @@ class Renderer:
                     self._caption(ctx, ev, t - t0, d)
 
     def _caption(self, ctx: Ctx, ev: dict, lt: float, d: float):
+        """On-screen text. style 'sub' (default): thin mono subtitle like the reference account;
+        style 'bold': heavy mono with a dark glow (hooks, shouts)."""
         W, H = self.W, self.H
+        style = ev.get("style", "sub")
         pos = ev.get("pos", "top")
-        y = {"top": H * 0.17, "center": H * 0.45, "bottom": H * 0.8}.get(pos, H * 0.17)
-        size = float(ev.get("size", 46))
-        a = min(1.0, lt / 0.15) * min(1.0, (d - lt) / 0.2)
-        reveal = int(len(ev["text"]) * min(1.0, lt / max(0.05, float(ev.get("type", 0.35)))))
-        txt = ev["text"][:reveal]
-        accent = ev.get("color", "#f2f2f0")
+        y = {"top": H * 0.135, "center": H * 0.45, "bottom": H * 0.8}.get(pos, H * 0.135)
+        if isinstance(ev.get("y"), (int, float)):
+            y = float(ev["y"]) * H
+        fade_in, fade_out = float(ev.get("fade", 0.25)), float(ev.get("fade", 0.25))
+        a = min(1.0, lt / max(0.01, fade_in)) * min(1.0, (d - lt) / max(0.01, fade_out))
+        typing = float(ev.get("type", 0.0 if style == "sub" else 0.35))
+        full = ev["text"]
+        n = len(full) if typing <= 0 else int(len(full) * min(1.0, lt / typing))
+        lines = full[:n].split("\n")
+        accent = ev.get("color", "#ecece9" if style == "sub" else "#f2f2f0")
+        size = float(ev.get("size", 30 if style == "sub" else 46))
 
         def draw(c):
-            gfx.draw_text(c, txt, W / 2, y, size=size, face=gfx.MONO_XB, c=accent, a=a, spacing=size * 0.12,
-                          glow=size * 0.3, glow_c="black")
+            for i, ln in enumerate(lines):
+                yy = y + i * size * 1.55
+                if style == "sub":
+                    gfx.draw_text(c, ln, W / 2, yy, size=size, face=gfx.MONO_MED, c=accent, a=0.92 * a,
+                                  spacing=size * 0.3, glow=size * 0.5, glow_c="black")
+                else:
+                    gfx.draw_text(c, ln, W / 2, yy, size=size, face=gfx.MONO_XB, c=accent, a=a,
+                                  spacing=size * 0.12, glow=size * 0.3, glow_c="black")
         ctx.add("screen", draw, z=5)
 
     def _screen_ui(self, ctx: Ctx, T: float):
@@ -402,8 +471,10 @@ class Renderer:
                 ctx.add("screen", draw_hook, z=4)
         wm = st.get("watermark")
         if wm and self.shot_at(T)["shot"].get("scene") != "title":
+            wy = float(st.get("watermark_y", 0.82))
+
             def draw_wm(c):
-                gfx.draw_text(c, wm, W / 2, H * 0.635, size=24, face=gfx.MONO, c="white", a=0.16, spacing=8)
+                gfx.draw_text(c, wm, W / 2, H * wy, size=22, face=gfx.MONO, c="white", a=0.2, spacing=7)
             ctx.add("screen", draw_wm, z=-1)
 
     # ------------------------------------------------------------------ output

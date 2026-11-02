@@ -7,6 +7,7 @@ Scenes (shot["scene"]):
   board      side view, actor writing equations on a whiteboard
   arena      side view, dark void stage for fights / power moves
   void       front view, empty dark stage (good for domain / reveals)
+  stage      front view, black stage, glossy floor, spotlights, block towers (newer reference look)
   title      end card: big quote + mono subtitle + seal
 """
 from __future__ import annotations
@@ -29,13 +30,19 @@ def draw_actor(c: skia.Canvas, st: ActorState, ctx: Ctx, *, label=True, sheet_sc
         return
     j = rig.draw_figure(c, st.pose, st.x, st.y, st.s, facing=st.facing, look=st.look, t=ctx.t)
     st.joints = j
-    head_top = j.head[1]
     hx = j.head[0]
-    top = head_top - st.s * 1.0
+    top = j.head[1] - st.s * 1.0
+    lab_c = gfx.mix("#f4f4f2", "#8a8b90", 0.8 * st.dim)
+    lab_a = st.alpha * (1 - 0.35 * st.dim)
     if label and st.show_label and st.label:
-        top = rig.draw_label(c, hx, j.head[1] - st.s * 0.05 + st.s * min(0.0, -st.pose.get("head_drop", 0) * 0.0),
-                             st.s, st.label, a=st.alpha, level=st.level, level_c=st.level_c,
-                             level_text=st.level_text, glitch=st.glitch, t=ctx.t)
+        if st.label_pos == "floor" and st.floor is not None:
+            rig.draw_label(c, st.x, j.head[1], st.s * 1.25, st.label, a=lab_a, level=st.level, level_c=st.level_c,
+                           level_text=st.level_text, glitch=st.glitch, t=ctx.t, color=lab_c,
+                           base_y=st.floor + st.s * 1.7, size_k=0.6)
+        else:
+            top = rig.draw_label(c, hx, j.head[1] - st.s * 0.05, st.s, st.label, a=lab_a, level=st.level,
+                                 level_c=st.level_c, level_text=st.level_text, glitch=st.glitch, t=ctx.t,
+                                 color=lab_c)
     if st.sheet:
         k = out_back(min(1.0, st.sheet_t / 0.32))
         rot = math.sin(ctx.t * 2.1 + st.x * 0.01) * 2.0
@@ -44,6 +51,8 @@ def draw_actor(c: skia.Canvas, st: ActorState, ctx: Ctx, *, label=True, sheet_sc
                        scale=0.6 + 0.4 * k, rot=rot, stamp_t=stamp_t)
     if st.zzz:
         rig.draw_zzz(c, hx + st.s * 1.15, j.head[1] + st.s * 0.2, st.s, ctx.t, a=st.alpha)
+    if st.sparkle > 0.01:
+        rig.draw_sparkle(c, hx + st.s * 1.25, j.head[1] - st.s * 1.15, st.s * 0.55, ctx.t, a=st.sparkle * st.alpha)
 
 
 def _rnd(seed):
@@ -69,6 +78,17 @@ class Scene:
 
     def focus_point(self, st: ActorState):
         return (st.x, st.y - st.s * 2.2)
+
+    def reflection(self, ctx: Ctx) -> dict | None:
+        """Glossy floor: {'floor': y, 'strength': 0..1, 'fade': px, 'blur': px} or None."""
+        k = float(self.p.get("reflect", self.default_reflect))
+        floor = getattr(self, "floor_y", None)
+        if k <= 0 or floor is None:
+            return None
+        return {"floor": float(floor), "strength": k, "fade": float(self.p.get("reflect_fade", 560)),
+                "blur": float(self.p.get("reflect_blur", 3.0)), "layers": ["back", "main", "fx"]}
+
+    default_reflect = 0.0
 
 
 # ----------------------------------------------------------------------------- classroom
@@ -212,6 +232,11 @@ class Study(Scene):
     """Night grind: lamp, window night->dawn, spinning clock, growing book stack."""
     name = "study"
     FLOOR = 1500
+    default_reflect = 0.22
+
+    @property
+    def floor_y(self):
+        return self.FLOOR
 
     def layout(self, aid, spec, idx, n):
         s = float(spec.get("s", 82))
@@ -284,6 +309,11 @@ class Study(Scene):
 class Board(Scene):
     name = "board"
     FLOOR = 1680
+    default_reflect = 0.2
+
+    @property
+    def floor_y(self):
+        return self.FLOOR
 
     def layout(self, aid, spec, idx, n):
         s = float(spec.get("s", 96))
@@ -317,21 +347,24 @@ class Arena(Scene):
     name = "arena"
     HORIZON = 1180
     FLOOR = 1500
+    default_reflect = 0.3
+
+    @property
+    def floor_y(self):
+        return float(self.p.get("floor", self.FLOOR))
 
     def layout(self, aid, spec, idx, n):
         s = float(spec.get("s", 70))
         x01 = float(spec.get("x", (idx + 1) / (n + 1)))
-        pose = rig.pose_dict(spec.get("pose", "stance"))
-        floor = float(spec.get("floor", self.p.get("floor", self.FLOOR)))
-        y = floor - rig.ground_offset(pose, s, int(spec.get("facing", 1)))
-        return dict(x=x01 * self.W, x01=x01, y=y, s=s, layer=spec.get("layer", "main"),
-                    facing=int(spec.get("facing", 1 if x01 < 0.5 else -1)), pose="stance")
+        floor = float(spec.get("floor", self.floor_y))
+        return dict(x=x01 * self.W, x01=x01, y=floor - 4 * s, s=s, layer=spec.get("layer", "main"),
+                    facing=int(spec.get("facing", 1 if x01 < 0.5 else -1)), pose="stance", floor=floor)
 
     def build(self, ctx, actors):
         W, H = self.W, self.H
         tint = self.p.get("tint", "#1a1b20")
         spot = float(self.p.get("spot", 0.6))
-        floor = float(self.p.get("floor", self.FLOOR))
+        floor = self.floor_y
 
         def bg(c):
             props.void_floor(c, W, H, float(self.p.get("horizon", self.HORIZON)), tint=tint, spot=spot,
@@ -355,13 +388,97 @@ class Void(Arena):
     """Front-view empty stage (good for a hero reveal / domain)."""
     name = "void"
 
+    @property
+    def floor_y(self):
+        return float(self.p.get("floor", 1560))
+
     def layout(self, aid, spec, idx, n):
         s = float(spec.get("s", 90))
         x01 = float(spec.get("x", (idx + 1) / (n + 1)))
-        pose = rig.pose_dict(spec.get("pose", "stand"))
-        floor = float(spec.get("floor", self.p.get("floor", 1560)))
-        return dict(x=x01 * self.W, x01=x01, y=floor - rig.ground_offset(pose, s), s=s,
-                    layer=spec.get("layer", "main"), facing=1, pose="stand")
+        floor = float(spec.get("floor", self.floor_y))
+        return dict(x=x01 * self.W, x01=x01, y=floor - 4 * s, s=s, layer=spec.get("layer", "main"), facing=1,
+                    pose="stand", floor=floor)
+
+
+# ----------------------------------------------------------------------------- stage (newer reference videos)
+
+
+class Stage(Scene):
+    """Black stage, glossy floor, a volumetric spotlight per actor, block towers,
+    labels on the floor. Front view, slim figures."""
+    name = "stage"
+    FLOOR = 1340
+    default_reflect = 0.42
+
+    @property
+    def floor_y(self):
+        return float(self.p.get("floor", self.FLOOR))
+
+    def layout(self, aid, spec, idx, n):
+        s = float(spec.get("s", self.p.get("s", 30)))
+        x01 = float(spec.get("x", (idx + 1) / (n + 1)))
+        return dict(x=x01 * self.W, x01=x01, y=self.floor_y - 9 * s, s=s, layer=spec.get("layer", "main"),
+                    facing=1, pose="stand", floor=self.floor_y, build=spec.get("build", "slim"),
+                    label_pos=spec.get("label_pos", self.p.get("label_pos", "floor")), glow=0.3,
+                    spot=1.0)
+
+    def build(self, ctx, actors):
+        W, H = self.W, self.H
+        floor = self.floor_y
+        t = ctx.t
+        objs = getattr(ctx, "actor_objs", {})
+        spot_k = float(self.p.get("spot", 1.0))
+        bw_k, bh_k = float(self.p.get("block_w", 1.9)), float(self.p.get("block_h", 0.62))
+
+        def bg(c):
+            props.stage_backdrop(c, W, H, floor, haze=float(self.p.get("haze", 0.7)))
+        ctx.add("bg", bg)
+
+        def beams(c):
+            for st in actors.values():
+                a = spot_k * st.spot * st.alpha
+                if a <= 0.01:
+                    continue
+                props.spotlight(c, st.x + st.s * 1.2 * (1 if objs.get(st.id) and objs[st.id].stacks else 0),
+                                floor, top_y=float(self.p.get("spot_top", -150)),
+                                w_top=st.s * 2.6, w_bottom=st.s * float(self.p.get("spot_w", 14)), a=a,
+                                t=t, seed=hash(st.id) % 100)
+            for extra in self.p.get("spots", []):
+                props.spotlight(c, extra.get("x", 0.5) * W, floor, w_top=extra.get("w_top", 70),
+                                w_bottom=extra.get("w", 420), a=extra.get("a", 0.6), t=t, seed=7)
+        ctx.add("bgfx", beams)
+
+        def main(c):
+            for st in sorted(actors.values(), key=lambda a: a.s):
+                if st.layer != "main":
+                    continue
+                ob = objs.get(st.id)
+                side = ob.tower_side if ob else 1
+                bw, bh = st.s * bw_k, st.s * bh_k
+                tx = st.x + side * st.s * 3.1
+                has_tower = ob is not None and (ob.stacks or ob.tower_base > 0 or ob.spec.get("tower"))
+                if has_tower:
+                    pile0 = int(ob.spec.get("pile", 12))
+                    pile_n = max(3, pile0 - (st.tower - st.tower_base))
+                    props.block_pile(c, st.x - side * st.s * 3.0, floor, bw * 0.85, bh * 0.9, pile_n,
+                                     a=st.alpha, dim=0.45 + 0.3 * st.dim, cols=2)
+                    props.pedestal(c, tx, floor, bw * 1.25, bh * 0.7, a=st.alpha)
+                    base_y = floor - bh * 0.7
+                    for i in range(st.tower):
+                        rig.draw_block(c, tx, base_y - i * (bh + 2), bw, bh, a=st.alpha,
+                                       glow=0.55 * (1 - 0.8 * st.dim),
+                                       c=gfx.mix("#f2f2f0", "#8d8e92", 0.75 * st.dim))
+                draw_actor(c, st, ctx)
+                if st.carrying and st.joints is not None:
+                    j = st.joints
+                    hx = (j.ha["l"][0] + j.ha["r"][0]) / 2
+                    hy = (j.ha["l"][1] + j.ha["r"][1]) / 2 + bh * 0.4
+                    rig.draw_block(c, hx, hy, bw, bh, a=st.alpha, glow=0.5,
+                                   c=gfx.mix("#f2f2f0", "#8d8e92", 0.75 * st.dim))
+        ctx.add("main", main)
+
+    def focus_point(self, st):
+        return (st.x, st.y - st.s * 3.0)
 
 
 # ----------------------------------------------------------------------------- title card
@@ -430,4 +547,4 @@ class Title(Scene):
         ctx.add("screen", screen)
 
 
-SCENES = {cls.name: cls for cls in (Classroom, Closeup, Study, Board, Arena, Void, Title)}
+SCENES = {cls.name: cls for cls in (Classroom, Closeup, Study, Board, Arena, Void, Stage, Title)}
